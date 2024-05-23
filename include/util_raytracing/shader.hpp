@@ -18,8 +18,9 @@
 #include <sharedutils/datastream.h>
 #include <sharedutils/util_hair.hpp>
 #include <sharedutils/util_virtual_shared_from_this.hpp>
-#include <udm.hpp>
 #include <mathutil/transform.hpp>
+
+import udm;
 
 namespace unirender {
 	static std::string COLORSPACE_AUTO = "";

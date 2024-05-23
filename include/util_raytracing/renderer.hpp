@@ -14,8 +14,9 @@
 #include <sharedutils/util_parallel_job.hpp>
 #include <sharedutils/util.h>
 #include <sharedutils/util_event_reply.hpp>
-#include <udm_types.hpp>
 #include <cinttypes>
+
+import udm;
 
 namespace uimg {
 	struct ImageLayerSet;
