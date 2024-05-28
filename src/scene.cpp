@@ -40,6 +40,7 @@
 // ccl happens to have the same include guard name as sharedutils, so we have to undef it here
 #undef __UTIL_STRING_H__
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_ifile.hpp>
 
 void unirender::serialize_udm_property(DataStream &dsOut, const udm::Property &prop)
 {

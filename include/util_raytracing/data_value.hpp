@@ -15,6 +15,7 @@
 #include <mathutil/uvec.h>
 #include <mathutil/umat.h>
 #include <sharedutils/datastream.h>
+#include <cassert>
 
 namespace unirender {
 	using STBool = bool;
