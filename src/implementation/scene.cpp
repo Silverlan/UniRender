@@ -21,7 +21,6 @@ module;
 #include <util_image.hpp>
 #include <util_image_buffer.hpp>
 #include <util_texture_info.hpp>
-#include <util_ocio.hpp>
 #include <udm.hpp>
 #include <random>
 #include "interface/definitions.hpp"
@@ -38,6 +37,8 @@ module;
 #include <sharedutils/util_string.h>
 
 module pragma.scenekit;
+
+import pragma.ocio;
 
 import :scene;
 import :camera;

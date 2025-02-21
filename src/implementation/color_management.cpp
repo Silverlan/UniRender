@@ -7,11 +7,12 @@
 
 module;
 
-#include <util_ocio.hpp>
 #include <sharedutils/util.h>
 #include <sharedutils/util_path.hpp>
 
 module pragma.scenekit;
+
+import pragma.ocio;
 
 import :color_management;
 
