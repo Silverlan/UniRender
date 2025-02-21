@@ -54,7 +54,7 @@ void pragma::scenekit::TileManager::SetExposure(float exposure) { m_exposure = e
 void pragma::scenekit::TileManager::SetGamma(float gamma) { m_gamma = gamma; }
 void pragma::scenekit::TileManager::SetUseFloatData(bool b) { m_useFloatData = b; }
 
-void pragma::scenekit::TileManager::Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure, float gamma, util::ocio::ColorProcessor *optColorProcessor)
+void pragma::scenekit::TileManager::Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure, float gamma, pragma::ocio::ColorProcessor *optColorProcessor)
 {
 	m_cpuDevice = cpuDevice;
 	if(optColorProcessor)

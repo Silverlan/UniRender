@@ -19,6 +19,8 @@ module;
 
 export module pragma.scenekit:tile_manager;
 
+import pragma.ocio;
+
 import :constants;
 
 export namespace pragma::scenekit {
@@ -41,7 +43,7 @@ export namespace pragma::scenekit {
 		struct ThreadData {};
 		enum class State : uint8_t { Initial = 0, Running, Cancelled, Stopped };
 		~TileManager();
-		void Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure = 0.f, float gamma = DEFAULT_GAMMA, util::ocio::ColorProcessor *optColorProcessor = nullptr);
+		void Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure = 0.f, float gamma = DEFAULT_GAMMA, pragma::ocio::ColorProcessor *optColorProcessor = nullptr);
 		void Reload(bool waitForCompletion);
 		void Cancel();
 		void Wait();
@@ -83,7 +85,7 @@ export namespace pragma::scenekit {
 		float m_exposure = 0.f;
 		float m_gamma = DEFAULT_GAMMA;
 
-		std::shared_ptr<util::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
+		std::shared_ptr<pragma::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
 
 		bool m_useFloatData = false;
 		bool m_cpuDevice = false;

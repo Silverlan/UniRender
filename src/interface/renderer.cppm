@@ -196,7 +196,7 @@ export namespace pragma::scenekit {
 		std::atomic<bool> m_progressiveRunning = false;
 		std::condition_variable m_progressiveCondition {};
 		std::mutex m_progressiveMutex {};
-		std::shared_ptr<util::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
+		std::shared_ptr<pragma::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
 		std::unordered_map<size_t, pragma::scenekit::WorldObject *> m_actorMap;
 
 		std::shared_ptr<uimg::ImageBuffer> &GetResultImageBuffer(PassType type, StereoEye eye = StereoEye::Left);
