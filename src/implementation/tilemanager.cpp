@@ -7,7 +7,6 @@
 
 module;
 
-#include <util_image_buffer.hpp>
 #include <sharedutils/util.h>
 #include <cstring>
 #include <sharedutils/ctpl_stl.h>
@@ -15,6 +14,7 @@ module;
 module pragma.scenekit;
 
 import pragma.ocio;
+import pragma.image;
 
 import :tile_manager;
 

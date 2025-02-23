@@ -18,9 +18,6 @@ module;
 #include <sharedutils/magic_enum.hpp>
 #include <sharedutils/util_hash.hpp>
 #include <sharedutils/util_log.hpp>
-#include <util_image.hpp>
-#include <util_image_buffer.hpp>
-#include <util_texture_info.hpp>
 #include <udm.hpp>
 #include <random>
 #include "interface/definitions.hpp"
@@ -39,6 +36,7 @@ module;
 module pragma.scenekit;
 
 import pragma.ocio;
+import pragma.image;
 
 import :scene;
 import :camera;

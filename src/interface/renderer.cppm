@@ -10,7 +10,6 @@ module;
 #include "definitions.hpp"
 #include <functional>
 #include <condition_variable>
-#include <util_image.hpp>
 #include <sharedutils/util_parallel_job.hpp>
 #include <sharedutils/util.h>
 #include <sharedutils/util_event_reply.hpp>
@@ -18,6 +17,8 @@ module;
 #include <cinttypes>
 
 export module pragma.scenekit:renderer;
+
+import pragma.image;
 
 import :tile_manager;
 

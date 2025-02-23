@@ -7,11 +7,12 @@
 
 module;
 
-#include <util_image_buffer.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 #include <iostream>
 
 module pragma.scenekit;
+
+import pragma.image;
 
 import :denoise;
 
