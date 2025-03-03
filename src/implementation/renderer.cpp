@@ -151,8 +151,8 @@ pragma::scenekit::Renderer::RenderStageResult pragma::scenekit::Renderer::StartN
 }
 void pragma::scenekit::Renderer::DumpImage(const std::string &renderStage, uimg::ImageBuffer &imgBuffer, uimg::ImageFormat format, const std::optional<std::string> &fileNameOverride) const
 {
-	filemanager::create_path("temp");
-	auto fileName = fileNameOverride.has_value() ? *fileNameOverride : ("temp/render_output_" + renderStage + "." + uimg::get_file_extension(format));
+	filemanager::create_path("temp/render_image_stages");
+	auto fileName = fileNameOverride.has_value() ? *fileNameOverride : ("temp/render_image_stages/render_output_" + renderStage + "." + uimg::get_file_extension(format));
 	auto f = filemanager::open_file(fileName, filemanager::FileMode::Write | filemanager::FileMode::Binary);
 	if(!f) {
 		std::cout << "Failed to dump render stage image '" << renderStage << "': Could not open file '" << fileName << "' for writing!" << std::endl;
