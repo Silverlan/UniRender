@@ -9,6 +9,7 @@ module;
 
 #include <sharedutils/util.h>
 #include <sharedutils/util_path.hpp>
+#include <util_image_buffer.hpp>
 
 module pragma.scenekit;
 
