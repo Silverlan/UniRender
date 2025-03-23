@@ -54,7 +54,6 @@ export namespace pragma::scenekit {
 	class ModelCache;
 	class ShaderCache;
 	class NodeManager;
-	class CCLShader;
 	class TileManager;
 	enum class ColorTransform : uint8_t;
 	class DLLRTUTIL Scene : public std::enable_shared_from_this<Scene> {
@@ -160,7 +159,6 @@ export namespace pragma::scenekit {
 		static bool IsRenderSceneMode(RenderMode renderMode);
 		static bool IsLightmapRenderMode(RenderMode renderMode);
 		static bool IsBakingRenderMode(RenderMode renderMode);
-		static void SetKernelPath(const std::string &kernelPath);
 		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, RenderMode renderMode, const CreateInfo &createInfo = {});
 		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir, RenderMode renderMode, const CreateInfo &createInfo = {});
 		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir);
