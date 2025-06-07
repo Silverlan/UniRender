@@ -75,9 +75,14 @@ std::shared_ptr<pragma::scenekit::Renderer> pragma::scenekit::Renderer::Create(c
 	pragma::scenekit::PRenderer renderer = nullptr;
 	auto it = g_rendererLibs.find(rendererIdentifier);
 	if(it == g_rendererLibs.end()) {
-		auto moduleLocation = util::Path::CreatePath(util::get_program_path());
-		moduleLocation += g_moduleLookupLocation + rendererIdentifier + "/";
+		auto moduleLocation = util::DirPath(g_moduleLookupLocation, rendererIdentifier);
+		std::string absPath;
+		if(!filemanager::find_absolute_path(moduleLocation.GetString(), absPath)) {
+			std::cout << "Unable to locate absolute path for module location '" << moduleLocation << "'!" << std::endl;
+			return nullptr;
+		}
 
+		moduleLocation = util::DirPath(absPath);
 		std::vector<std::string> additionalSearchDirectories;
 		additionalSearchDirectories.push_back(moduleLocation.GetString());
 		std::string err;
