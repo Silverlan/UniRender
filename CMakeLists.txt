@@ -15,8 +15,6 @@ pr_init_module(${PROJ_NAME})
 pr_add_compile_definitions(${PROJ_NAME} -DENABLE_TEST_AMBIENT_OCCLUSION PUBLIC)
 
 pr_add_compile_definitions(${PROJ_NAME} -DOIIO_STATIC_BUILD -DGLEW_STATIC -DRTUTIL_DLL)
-pr_add_compile_definitions(${PROJ_NAME} -DCCL_NAMESPACE_BEGIN=namespace\ ccl\ {)
-pr_add_compile_definitions(${PROJ_NAME} -DCCL_NAMESPACE_END=})
 
 if(WIN32)
 	target_link_libraries(${PROJ_NAME}
