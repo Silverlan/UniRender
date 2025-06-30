@@ -6,9 +6,11 @@ pr_add_library(${PROJ_NAME} SHARED)
 pr_add_dependency(${PROJ_NAME} util_ocio TARGET PUBLIC)
 pr_add_dependency(${PROJ_NAME} util_udm TARGET PUBLIC)
 
+find_package(openimagedenoise REQUIRED)
 pr_add_external_dependency(${PROJ_NAME} openimagedenoise LIBRARY PUBLIC)
+
+find_package(opensubdiv REQUIRED)
 pr_add_external_dependency(${PROJ_NAME} opensubdiv LIBRARY PUBLIC)
-pr_add_external_dependency(${PROJ_NAME} opensubdiv_cpu LIBRARY PUBLIC LINK_ONLY)
 
 pr_init_module(${PROJ_NAME})
 
