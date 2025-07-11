@@ -6,6 +6,7 @@ module;
 #include <sharedutils/datastream.h>
 #include <sharedutils/util_weak_handle.hpp>
 #include <mathutil/transform.hpp>
+#include <udm.hpp>
 #include <optional>
 #include <cassert>
 
@@ -17,35 +18,36 @@ import :mesh;
 pragma::scenekit::PObject pragma::scenekit::Object::Create(Mesh *mesh) { return PObject {new Object {mesh}}; }
 pragma::scenekit::PObject pragma::scenekit::Object::Create(Mesh &mesh) { return Create(&mesh); }
 
-pragma::scenekit::PObject pragma::scenekit::Object::Create(uint32_t version, DataStream &dsIn, const std::function<PMesh(uint32_t)> &fGetMesh)
+pragma::scenekit::PObject pragma::scenekit::Object::Create(udm::LinkedPropertyWrapper &data, const std::function<PMesh(uint32_t)> &fGetMesh)
 {
 	auto o = Create(nullptr);
-	o->Deserialize(version, dsIn, fGetMesh);
+	o->Deserialize(data, fGetMesh);
 	return o;
 }
 
 pragma::scenekit::Object::Object(Mesh *mesh) : WorldObject {}, BaseObject {}, m_mesh {mesh ? mesh->shared_from_this() : nullptr} {}
 
-void pragma::scenekit::Object::Serialize(DataStream &dsOut, const std::function<std::optional<uint32_t>(const Mesh &)> &fGetMeshIndex) const
+void pragma::scenekit::Object::Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Mesh &)> &fGetMeshIndex) const
 {
-	WorldObject::Serialize(dsOut);
+	WorldObject::Serialize(data);
 	auto idx = fGetMeshIndex(*m_mesh);
 	assert(idx.has_value());
-	dsOut->Write<uint32_t>(*idx);
-	dsOut->WriteString(GetName());
+	data["meshIndex"] << *idx;
+	data["name"] << GetName();
 }
-void pragma::scenekit::Object::Serialize(DataStream &dsOut, const std::unordered_map<const Mesh *, size_t> &meshToIndexTable) const
+void pragma::scenekit::Object::Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const Mesh *, size_t> &meshToIndexTable) const
 {
-	Serialize(dsOut, [&meshToIndexTable](const Mesh &mesh) -> std::optional<uint32_t> {
+	Serialize(data, [&meshToIndexTable](const Mesh &mesh) -> std::optional<uint32_t> {
 		auto it = meshToIndexTable.find(&mesh);
 		return (it != meshToIndexTable.end()) ? it->second : std::optional<uint32_t> {};
 	});
 }
-void pragma::scenekit::Object::Deserialize(uint32_t version, DataStream &dsIn, const std::function<PMesh(uint32_t)> &fGetMesh)
+void pragma::scenekit::Object::Deserialize(udm::LinkedPropertyWrapper &data, const std::function<PMesh(uint32_t)> &fGetMesh)
 {
-	WorldObject::Deserialize(version, dsIn);
-	auto meshIdx = dsIn->Read<uint32_t>();
-	m_name = dsIn->ReadString();
+	WorldObject::Deserialize(data);
+	uint32_t meshIdx = 0;
+	data["meshIndex"] >> meshIdx;
+	data["name"] >> m_name;
 	auto mesh = fGetMesh(meshIdx);
 	assert(mesh);
 	m_mesh = mesh;

@@ -10,6 +10,7 @@ module;
 #include <mathutil/uvec.h>
 #include <mathutil/umat.h>
 #include <sharedutils/datastream.h>
+#include <udm.hpp>
 
 export module pragma.scenekit:data_value;
 
@@ -262,6 +263,7 @@ export namespace pragma::scenekit {
 			assert(false);
 			return {};
 		}
+		static DataValue Deserialize(udm::LinkedPropertyWrapper &data);
 		static DataValue Deserialize(DataStream &dsIn);
 		DataValue(SocketType type, const std::shared_ptr<void> &value) : type {type}, value {value} {}
 		DataValue() = default;
@@ -269,6 +271,7 @@ export namespace pragma::scenekit {
 		bool operator==(const DataValue &other) const { return type == other.type && value.get() == other.value.get(); }
 		bool operator!=(const DataValue &other) const { return !operator==(other); }
 
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
 		void Serialize(DataStream &dsOut) const;
 
 		SocketType type = SocketType::Bool;

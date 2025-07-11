@@ -8,6 +8,7 @@ module;
 #include <sharedutils/util_weak_handle.hpp>
 #include <mathutil/color.h>
 #include <mathutil/uvec.h>
+#include <udm.hpp>
 #include <memory>
 
 export module pragma.scenekit:light;
@@ -32,7 +33,7 @@ export namespace pragma::scenekit {
 			Triangle
 		};
 		static PLight Create();
-		static PLight Create(uint32_t version, DataStream &dsIn);
+		static PLight Create(udm::LinkedPropertyWrapper &data);
 		util::WeakHandle<Light> GetHandle();
 
 		void SetType(Type type);
@@ -47,8 +48,8 @@ export namespace pragma::scenekit {
 		void SetSizeU(float sizeU);
 		void SetSizeV(float sizeV);
 
-		void Serialize(DataStream &dsOut) const;
-		void Deserialize(uint32_t version, DataStream &dsIn);
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data);
 
 		Type GetType() const { return m_type; }
 		float GetSize() const { return m_size; }

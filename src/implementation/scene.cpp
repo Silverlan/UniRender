@@ -6,6 +6,7 @@ module;
 #include <optional>
 #include <iostream>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 #include <sharedutils/datastream.h>
 #include <sharedutils/util_file.h>
 #include <sharedutils/util_ifile.hpp>
@@ -80,12 +81,9 @@ const std::function<void(bool)> &pragma::scenekit::get_kernel_compile_callback()
 
 pragma::scenekit::Scene::CreateInfo::CreateInfo() {}
 
-void pragma::scenekit::Scene::CreateInfo::Serialize(DataStream &ds) const
+void pragma::scenekit::Scene::CreateInfo::Serialize(udm::LinkedPropertyWrapper &data) const
 {
-	auto prop = udm::Property::Create<udm::Element>();
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
-
+	auto &udm = data;
 	udm["renderer"] = renderer;
 	if(samples.has_value())
 		udm["samples"] = *samples;
@@ -103,16 +101,10 @@ void pragma::scenekit::Scene::CreateInfo::Serialize(DataStream &ds) const
 		if(colorTransform->lookName.has_value())
 			udmColorTransform["lookName"] = *colorTransform->lookName;
 	}
-	serialize_udm_property(ds, *prop);
 }
-void pragma::scenekit::Scene::CreateInfo::Deserialize(DataStream &ds, uint32_t version)
+void pragma::scenekit::Scene::CreateInfo::Deserialize(udm::LinkedPropertyWrapper &data)
 {
-	auto prop = udm::Property::Create<udm::Element>();
-	deserialize_udm_property(ds, *prop);
-
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
-
+	auto &udm = data;
 	udm["renderer"](renderer);
 	if(udm["samples"]) {
 		samples = uint32_t {};
@@ -247,26 +239,26 @@ bool pragma::scenekit::Scene::IsBakingRenderMode(RenderMode renderMode) { return
 
 bool pragma::scenekit::Scene::IsRenderSceneMode(RenderMode renderMode) { return !IsBakingRenderMode(renderMode); }
 
-bool pragma::scenekit::Scene::ReadHeaderInfo(DataStream &ds, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo)
+bool pragma::scenekit::Scene::ReadHeaderInfo(udm::AssetDataArg data, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo)
 {
-	return ReadSerializationHeader(ds, outRenderMode, outCreateInfo, outSerializationData, outVersion, optOutSceneInfo);
+	return ReadSerializationHeader(data, outRenderMode, outCreateInfo, outSerializationData, outVersion, optOutSceneInfo);
 }
-std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir, RenderMode renderMode, const CreateInfo &createInfo)
+std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeManager &nodeManager, udm::AssetDataArg data, const std::string &rootDir, RenderMode renderMode, const CreateInfo &createInfo)
 {
 	auto scene = Create(nodeManager, renderMode, createInfo);
-	if(scene == nullptr || scene->Load(dsIn, rootDir) == false)
+	if(scene == nullptr || scene->Load(data, rootDir) == false)
 		return nullptr;
 	return scene;
 }
-std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir)
+std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeManager &nodeManager, udm::AssetDataArg data, const std::string &rootDir)
 {
 	RenderMode renderMode;
 	CreateInfo createInfo;
 	SerializationData serializationData;
 	uint32_t version;
-	if(ReadSerializationHeader(dsIn, renderMode, createInfo, serializationData, version) == false)
+	if(ReadSerializationHeader(data, renderMode, createInfo, serializationData, version) == false)
 		return nullptr;
-	return Create(nodeManager, dsIn, rootDir, renderMode, createInfo);
+	return Create(nodeManager, data, rootDir, renderMode, createInfo);
 }
 
 std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeManager &nodeManager, RenderMode renderMode, const CreateInfo &createInfo)
@@ -514,23 +506,17 @@ static bool g_verbose = false;
 void pragma::scenekit::Scene::SetVerbose(bool verbose) { g_verbose = verbose; }
 bool pragma::scenekit::Scene::IsVerbose() { return g_verbose; }
 
-static constexpr std::array<char, 3> SERIALIZATION_HEADER = {'R', 'T', 'D'};
-static constexpr std::array<char, 4> MODEL_CACHE_HEADER = {'R', 'T', 'M', 'C'};
-void pragma::scenekit::Scene::Save(DataStream &dsOut, const std::string &rootDir, const SerializationData &serializationData) const
-{
-	auto modelCachePath = rootDir + "cache/";
-	FileManager::CreateSystemDirectory(modelCachePath.c_str());
+void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string &rootDir, const SerializationData &serializationData) const {
+	auto modelCachePath = util::DirPath(rootDir, "cache").GetString();
+	filemanager::create_path(modelCachePath);
 
-	dsOut->SetOffset(0);
-	dsOut->Write(reinterpret_cast<const uint8_t *>(SERIALIZATION_HEADER.data()), SERIALIZATION_HEADER.size() * sizeof(SERIALIZATION_HEADER.front()));
-	dsOut->Write(SERIALIZATION_VERSION);
-	m_createInfo.Serialize(dsOut);
-	dsOut->Write(m_renderMode);
-	dsOut->WriteString(serializationData.outputFileName);
+	outData.SetAssetType(PRT_IDENTIFIER);
+	outData.SetAssetVersion(PRT_VERSION);
+	auto udm = *outData;
 
-	auto prop = udm::Property::Create<udm::Element>();
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
+	m_createInfo.Serialize(udm);
+	udm["renderMode"] << m_renderMode;
+	udm["outputFileName"] << serializationData.outputFileName;
 
 	auto udmScene = udm["sceneInfo"];
 	auto udmSky = udmScene["sky"];
@@ -560,12 +546,14 @@ void pragma::scenekit::Scene::Save(DataStream &dsOut, const std::string &rootDir
 	udmScene["useAdaptiveSampling"] = m_sceneInfo.useAdaptiveSampling;
 	udmScene["adaptiveSamplingThreshold"] = m_sceneInfo.adaptiveSamplingThreshold;
 	udmScene["adaptiveMinSamples"] = m_sceneInfo.adaptiveMinSamples;
-	serialize_udm_property(dsOut, *prop);
 
-	dsOut->Write(m_stateFlags);
+	udm["stateFlags"] << udm::enum_to_string(m_stateFlags);
 
-	dsOut->Write<uint32_t>(m_mdlCaches.size());
+	auto propResources = udm::Property::Create<udm::Element>();
+	auto udmModelCaches = udm.AddArray("modelCaches", m_mdlCaches.size());
+	size_t idx = 0;
 	for(auto &mdlCache : m_mdlCaches) {
+		auto udmModelCache = udmModelCaches[idx++];
 		// Try to create a reasonable has to identify the cache
 		auto &chunks = mdlCache->GetChunks();
 		size_t hash = 0;
@@ -589,56 +577,65 @@ void pragma::scenekit::Scene::Save(DataStream &dsOut, const std::string &rootDir
 				}
 			}
 		}
+		/*auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." +std::string {PRTMC_EXTENSION_BINARY}).GetString();
+		if(filemanager::exists(mdlCachePath) == false) {
+			filemanager::create_path(ufile::get_path_from_filename(mdlCachePath));
+			auto f = filemanager::open_file(mdlCachePath, filemanager::FileMode::Write | filemanager::FileMode::Binary);
+			if (f) {
+				auto data = udm::Data::Create(PRTMC_IDENTIFIER, PRTMC_VERSION);
+				auto assetData = data->GetAssetData();
+				mdlCache->Serialize(assetData);
+
+				fsys::File fptr {f};
+				data->Save(fptr);
+			}
+		}*/
 		auto mdlCachePath = modelCachePath + std::to_string(hash) + ".prtc";
-		if(FileManager::ExistsSystem(mdlCachePath) == false) {
+		if(FileManager::Exists(mdlCachePath) == false) {
 			DataStream mdlCacheStream {};
 			mdlCacheStream->SetOffset(0);
 			mdlCache->Serialize(mdlCacheStream);
-			auto f = FileManager::OpenSystemFile(mdlCachePath.c_str(), "wb");
+			auto f = FileManager::OpenFile<VFilePtrReal>(mdlCachePath.c_str(), "wb");
 			if(f) {
-				f->Write(reinterpret_cast<const uint8_t *>(MODEL_CACHE_HEADER.data()), MODEL_CACHE_HEADER.size() * sizeof(MODEL_CACHE_HEADER.front()));
-				f->Write(SERIALIZATION_VERSION);
 				f->Write(mdlCacheStream->GetData(), mdlCacheStream->GetInternalSize());
 			}
 		}
-		dsOut->Write<size_t>(hash);
+		udmModelCache["hash"] << hash;
 	}
 
 	//for(auto &mdlCache : m_mdlCaches)
 	//	m_renderData.modelCache->Merge(*mdlCache);
 	//m_renderData.modelCache->Bake();
 
-	dsOut->Write<uint32_t>(m_lights.size());
-	for(auto &light : m_lights)
-		light->Serialize(dsOut);
+	auto udmLights = udm.AddArray("lights", m_lights.size());
+	idx = 0;
+	for(auto &light : m_lights) {
+		auto udmLight = udmLights[idx++];
+		light->Serialize(udmLight);
+	}
 
-	m_camera->Serialize(dsOut);
-
-	dsOut->Write<bool>(m_bakeTargetName.has_value());
-	if(m_bakeTargetName.has_value())
-		dsOut->WriteString(*m_bakeTargetName);
+	{
+		auto udmCamera = udm["camera"];
+		m_camera->Serialize(udmCamera);
+	}
+	udm["bakeTargetName"] << m_bakeTargetName;
 }
-bool pragma::scenekit::Scene::ReadSerializationHeader(DataStream &dsIn, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo)
+bool pragma::scenekit::Scene::ReadSerializationHeader(udm::AssetDataArg data, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo)
 {
-	std::array<char, 3> header {};
-	dsIn->Read(reinterpret_cast<uint8_t *>(&header), sizeof(header));
-	if(header != SERIALIZATION_HEADER)
-		return false;
-	auto version = dsIn->Read<uint32_t>();
-	if(version > SERIALIZATION_VERSION || version < 3)
-		return false;
+	//if (data.GetAssetType() != PRT_IDENTIFIER)
+	//	return false;
+	auto version = data.GetAssetVersion();
+	//if (version != PRT_VERSION)
+	//	return false;
 	outVersion = version;
-	outCreateInfo.Deserialize(dsIn, version);
-	outRenderMode = dsIn->Read<RenderMode>();
-	outSerializationData.outputFileName = dsIn->ReadString();
+
+	auto udm = data.GetData();
+	outCreateInfo.Deserialize(udm);
+
+	udm["renderMode"] >> outRenderMode;
+	udm["outputFileName"] >> outSerializationData.outputFileName;
 
 	if(optOutSceneInfo) {
-		auto prop = udm::Property::Create<udm::Element>();
-		deserialize_udm_property(dsIn, *prop);
-
-		auto &udmEl = prop->GetValue<udm::Element>();
-		udm::LinkedPropertyWrapper udm {*prop};
-
 		auto &sceneInfo = *optOutSceneInfo;
 		auto udmScene = udm["sceneInfo"];
 		auto udmSky = udmScene["sky"];
@@ -675,52 +672,64 @@ bool pragma::scenekit::Scene::ReadSerializationHeader(DataStream &dsIn, RenderMo
 	}
 	return true;
 }
-bool pragma::scenekit::Scene::Load(DataStream &dsIn, const std::string &rootDir)
+bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &rootDir)
 {
 	auto modelCachePath = rootDir + "cache/";
-	dsIn->SetOffset(0);
 
 	SerializationData serializationData;
 	uint32_t version;
 	CreateInfo createInfo {};
-	if(ReadSerializationHeader(dsIn, m_renderMode, createInfo, serializationData, version, &m_sceneInfo) == false)
+	if(ReadSerializationHeader(data, m_renderMode, createInfo, serializationData, version, &m_sceneInfo) == false)
 		return false;
-	m_stateFlags = dsIn->Read<decltype(m_stateFlags)>();
+	auto udm = data.GetData();
+	m_stateFlags = udm::string_to_flags<StateFlags>(udm["stateFlags"], StateFlags::None);
 
-	auto numCaches = dsIn->Read<uint32_t>();
+	auto udmModelCaches = udm["modelCaches"];
+	auto numCaches = udmModelCaches.GetSize();
 	m_mdlCaches.reserve(numCaches);
 	for(auto i = decltype(numCaches) {0u}; i < numCaches; ++i) {
-		auto hash = dsIn->Read<size_t>();
-		auto mdlCachePath = modelCachePath + std::to_string(hash) + ".prtc";
-		auto f = FileManager::OpenSystemFile(mdlCachePath.c_str(), "rb");
+		auto udmCache = udmModelCaches[i];
+		size_t hash = 0;
+		udmCache["hash"] >> hash;
+		auto baseMdlCachePath = modelCachePath + std::to_string(hash);
+		auto mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_BINARY};
+		auto f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		/*if (!f) {
+			mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_ASCII};
+			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		}*/
+		if (!f) {
+			mdlCachePath = baseMdlCachePath + ".prtc";
+			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		}
 		if(f) {
-			std::array<char, 4> header {};
-			f->Read(reinterpret_cast<uint8_t *>(&header), sizeof(header));
-			if(header != MODEL_CACHE_HEADER)
-				continue;
-			uint32_t version;
-			f->Read(&version, sizeof(version));
-			if(version > SERIALIZATION_VERSION || version < 3)
-				continue;
 			DataStream dsMdlCache {};
 			dsMdlCache->Resize(f->GetSize() - f->Tell());
 			f->Read(dsMdlCache->GetData(), f->GetSize() - f->Tell());
 			auto mdlCache = ModelCache::Create(dsMdlCache, GetShaderNodeManager());
 			if(mdlCache)
 				m_mdlCaches.push_back(mdlCache);
+			/*auto fptr = std::make_unique<fsys::File>(f);
+			auto udmData = udm::Data::Load(std::move(fptr));
+			auto assetData = udmData->GetAssetData();
+
+			auto mdlCache = ModelCache::Create(assetData, GetShaderNodeManager());
+			if(mdlCache)
+				m_mdlCaches.push_back(mdlCache);*/
 		}
 	}
 
-	auto numLights = dsIn->Read<uint32_t>();
-	m_lights.reserve(numLights);
-	for(auto i = decltype(numLights) {0u}; i < numLights; ++i)
-		m_lights.push_back(Light::Create(version, dsIn));
+	auto udmLights = udm["lights"];
+	m_lights.reserve(udmLights.GetSize());
+	for (auto &udmLight : udmLights)
+		m_lights.push_back(Light::Create(udmLight));
 
-	m_camera->Deserialize(version, dsIn);
+	{
+		auto udmCamera = udm["camera"];
+		m_camera->Deserialize(udmCamera);
+	}
 
-	auto hasBakeTarget = dsIn->Read<bool>();
-	if(hasBakeTarget)
-		m_bakeTargetName = dsIn->ReadString();
+	udm["bakeTargetName"] >> m_bakeTargetName;
 	return true;
 }
 

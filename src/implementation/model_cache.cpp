@@ -8,6 +8,7 @@ module;
 #include <mathutil/umath.h>
 #include <sharedutils/util.h>
 #include <sharedutils/datastream.h>
+#include <udm.hpp>
 
 #undef GetObject
 
@@ -20,6 +21,12 @@ import :object;
 import :mesh;
 
 std::shared_ptr<pragma::scenekit::ShaderCache> pragma::scenekit::ShaderCache::Create() { return std::shared_ptr<ShaderCache> {new ShaderCache {}}; }
+std::shared_ptr<pragma::scenekit::ShaderCache> pragma::scenekit::ShaderCache::Create(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager)
+{
+	auto cache = Create();
+	cache->Deserialize(data, nodeManager);
+	return cache;
+}
 std::shared_ptr<pragma::scenekit::ShaderCache> pragma::scenekit::ShaderCache::Create(DataStream &ds, NodeManager &nodeManager)
 {
 	auto cache = Create();
@@ -58,7 +65,6 @@ std::unordered_map<const pragma::scenekit::Shader *, size_t> pragma::scenekit::S
 
 void pragma::scenekit::ShaderCache::Serialize(DataStream &dsOut)
 {
-	dsOut->Write<decltype(Scene::SERIALIZATION_VERSION)>(Scene::SERIALIZATION_VERSION);
 	dsOut->Write<uint32_t>(m_shaders.size());
 
 	std::unordered_map<const Shader *, uint32_t> shaderToIndex;
@@ -71,9 +77,6 @@ void pragma::scenekit::ShaderCache::Serialize(DataStream &dsOut)
 }
 void pragma::scenekit::ShaderCache::Deserialize(DataStream &dsIn, NodeManager &nodeManager)
 {
-	auto version = dsIn->Read<uint32_t>();
-	if(version < 3 || version > Scene::SERIALIZATION_VERSION)
-		return;
 	auto n = dsIn->Read<uint32_t>();
 	m_shaders.resize(n);
 	for(auto i = decltype(n) {0u}; i < n; ++i) {
@@ -83,10 +86,36 @@ void pragma::scenekit::ShaderCache::Deserialize(DataStream &dsIn, NodeManager &n
 	}
 }
 
+void pragma::scenekit::ShaderCache::Serialize(udm::LinkedPropertyWrapper &data)
+{
+	auto udmShaders = data.AddArray("shaders", m_shaders.size());
+	std::unordered_map<const Shader *, uint32_t> shaderToIndex;
+	shaderToIndex.reserve(m_shaders.size());
+	uint32_t shaderIdx = 0;
+	for(auto &s : m_shaders) {
+		auto udmShader = udmShaders[shaderIdx];
+		s->Serialize(udmShader);
+		shaderToIndex[s.get()] = shaderIdx++;
+	}
+}
+void pragma::scenekit::ShaderCache::Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager)
+{
+	auto udmShaders = data["shaders"];
+	auto n = udmShaders.GetSize();
+	m_shaders.resize(n);
+	for(auto i = decltype(n) {0u}; i < n; ++i) {
+		auto shader = Shader::Create<GenericShader>();
+		auto udmShader = udmShaders[i];
+		shader->Deserialize(udmShader, nodeManager);
+		m_shaders.at(i) = shader;
+	}
+}
+
 //////////
 
-pragma::scenekit::ModelCacheChunk::ModelCacheChunk(ShaderCache &shaderCache) : m_shaderCache {shaderCache.shared_from_this()}, m_serializationVersion {Scene::SERIALIZATION_VERSION} {}
-pragma::scenekit::ModelCacheChunk::ModelCacheChunk(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager) : m_serializationVersion {Scene::SERIALIZATION_VERSION} { Deserialize(dsIn, nodeManager); }
+pragma::scenekit::ModelCacheChunk::ModelCacheChunk(ShaderCache &shaderCache) : m_shaderCache {shaderCache.shared_from_this()} {}
+pragma::scenekit::ModelCacheChunk::ModelCacheChunk(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager) { Deserialize(data, nodeManager); }
+pragma::scenekit::ModelCacheChunk::ModelCacheChunk(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager) { Deserialize(dsIn, nodeManager); }
 const std::vector<DataStream> &pragma::scenekit::ModelCacheChunk::GetBakedObjectData() const { return m_bakedObjects; }
 const std::vector<DataStream> &pragma::scenekit::ModelCacheChunk::GetBakedMeshData() const { return m_bakedMeshes; }
 std::unordered_map<const pragma::scenekit::Mesh *, size_t> pragma::scenekit::ModelCacheChunk::GetMeshToIndexTable() const
@@ -105,7 +134,11 @@ void pragma::scenekit::ModelCacheChunk::Bake()
 	m_bakedObjects.reserve(m_objects.size());
 	for(auto &o : m_objects) {
 		DataStream ds;
-		o->Serialize(ds, meshToIndexTable);
+
+		auto prop = udm::Property::Create<udm::Element>();
+		udm::LinkedPropertyWrapper udm {*prop};
+		o->Serialize(udm, meshToIndexTable);
+		serialize_udm_property(ds, *prop);
 
 		auto hash = util::murmur_hash3(ds->GetData(), ds->GetDataSize(), MURMUR_SEED);
 		ds->Write(hash);
@@ -187,7 +220,11 @@ void pragma::scenekit::ModelCacheChunk::GenerateUnbakedData(bool force)
 	m_objects.resize(m_bakedObjects.size());
 	for(auto i = decltype(m_bakedObjects.size()) {0u}; i < m_bakedObjects.size(); ++i) {
 		auto &ds = m_bakedObjects.at(i);
-		auto obj = Object::Create(m_serializationVersion, ds, [this](uint32_t idx) -> PMesh { return (idx < m_meshes.size()) ? m_meshes.at(idx) : nullptr; });
+
+		auto prop = udm::Property::Create<udm::Element>();
+		deserialize_udm_property(ds, *prop);
+		udm::LinkedPropertyWrapper udm {*prop};
+		auto obj = Object::Create(udm, [this](uint32_t idx) -> PMesh { return (idx < m_meshes.size()) ? m_meshes.at(idx) : nullptr; });
 		auto hash = ds->Read<util::MurmurHash3>();
 		obj->SetHash(std::move(hash));
 		m_objects.at(i) = obj;
@@ -206,11 +243,53 @@ void pragma::scenekit::ModelCacheChunk::Unbake()
 	umath::remove_flag(m_flags, Flags::HasBakedData);
 }
 
+void pragma::scenekit::ModelCacheChunk::Serialize(udm::LinkedPropertyWrapper &data)
+{
+	Bake();
+
+	auto udmShaderCache = data.Add("shaderCache");
+	GetShaderCache().Serialize(udmShaderCache);
+
+	auto fWriteList = [&data](const std::string &identifier, const std::vector<DataStream> &list) {
+		auto udmData = data.Add(identifier);
+		auto udmList = udmData.AddArray("list", list.size(), udm::Type::BlobLz4);
+		size_t idx = 0;
+		for(auto &ds : list) {
+			auto &udmBlob = udmList[idx++].GetValue<udm::BlobLz4>();
+			udmBlob = udm::compress_lz4_blob(const_cast<DataStream &>(ds)->GetData(), ds->GetDataSize());
+		}
+	};
+	fWriteList("objects", m_bakedObjects);
+	fWriteList("meshes", m_bakedMeshes);
+}
+void pragma::scenekit::ModelCacheChunk::Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager)
+{
+	auto udmShaderCache = data["shaderCache"];
+	m_shaderCache = ShaderCache::Create(udmShaderCache, nodeManager);
+	auto fReadList = [&data](const std::string &identifier, std::vector<DataStream> &list) {
+		auto udmData = data[identifier];
+		udmData = udmData["list"];
+		auto numObjects = udmData.GetSize();
+		list.resize(numObjects);
+		for(auto i = decltype(numObjects) {0u}; i < numObjects; ++i) {
+			auto &udmBlob = udmData[i].GetValue<udm::BlobLz4>();
+			DataStream ds {};
+			auto size = udmBlob.uncompressedSize;
+			ds->Resize(size);
+			ds->SetOffset(0);
+			udm::decompress_lz4_blob(udmBlob.compressedData.data(), udmBlob.compressedData.size(), udmBlob.uncompressedSize, ds->GetData());
+			list.at(i) = ds;
+		}
+	};
+	fReadList("objects", m_bakedObjects);
+	fReadList("meshes", m_bakedMeshes);
+	m_flags = Flags::HasBakedData;
+}
+
 void pragma::scenekit::ModelCacheChunk::Serialize(DataStream &dsOut)
 {
 	Bake();
 
-	dsOut->Write<decltype(Scene::SERIALIZATION_VERSION)>(Scene::SERIALIZATION_VERSION);
 	GetShaderCache().Serialize(dsOut);
 	size_t size = 0;
 	for(auto &ds : m_bakedObjects)
@@ -232,11 +311,7 @@ void pragma::scenekit::ModelCacheChunk::Serialize(DataStream &dsOut)
 }
 void pragma::scenekit::ModelCacheChunk::Deserialize(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager)
 {
-	auto version = dsIn->Read<uint32_t>();
-	if(version < 3 || version > Scene::SERIALIZATION_VERSION)
-		return;
 	m_shaderCache = ShaderCache::Create(dsIn, nodeManager);
-	m_serializationVersion = version;
 	auto fReadList = [&dsIn](std::vector<DataStream> &list) {
 		auto numObjects = dsIn->Read<uint32_t>();
 		list.resize(numObjects);
@@ -257,6 +332,13 @@ void pragma::scenekit::ModelCacheChunk::Deserialize(DataStream &dsIn, pragma::sc
 //////////
 
 std::shared_ptr<pragma::scenekit::ModelCache> pragma::scenekit::ModelCache::Create() { return std::shared_ptr<ModelCache> {new ModelCache {}}; }
+
+std::shared_ptr<pragma::scenekit::ModelCache> pragma::scenekit::ModelCache::Create(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager)
+{
+	auto cache = Create();
+	cache->Deserialize(data, nodeManager);
+	return cache;
+}
 
 std::shared_ptr<pragma::scenekit::ModelCache> pragma::scenekit::ModelCache::Create(DataStream &ds, pragma::scenekit::NodeManager &nodeManager)
 {
@@ -287,10 +369,30 @@ void pragma::scenekit::ModelCache::GenerateData()
 		chunk.GenerateUnbakedData(true);
 }
 
+void pragma::scenekit::ModelCache::Serialize(udm::LinkedPropertyWrapper &data)
+{
+	Bake();
+
+	auto udmChunks = data.AddArray("chunks", m_chunks.size());
+	size_t idx = 0;
+	for(auto &chunk : m_chunks) {
+		auto udmChunk = udmChunks[idx++];
+		chunk.Serialize(udmChunk);
+	}
+}
+void pragma::scenekit::ModelCache::Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager)
+{
+	auto udmChunks = data["chunks"];
+	auto numChunks = udmChunks.GetSize();
+	m_chunks.reserve(numChunks);
+	for(auto i = decltype(numChunks) {0u}; i < numChunks; ++i) {
+		auto udmChunk = udmChunks[i];
+		m_chunks.emplace_back(udmChunk, nodeManager);
+	}
+}
 void pragma::scenekit::ModelCache::Serialize(DataStream &dsOut)
 {
 	Bake();
-	dsOut->Write<decltype(Scene::SERIALIZATION_VERSION)>(Scene::SERIALIZATION_VERSION);
 
 	dsOut->Write<uint32_t>(m_chunks.size());
 	for(auto &chunk : m_chunks)
@@ -298,9 +400,6 @@ void pragma::scenekit::ModelCache::Serialize(DataStream &dsOut)
 }
 void pragma::scenekit::ModelCache::Deserialize(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager)
 {
-	auto version = dsIn->Read<uint32_t>();
-	if(version < 3 || version > Scene::SERIALIZATION_VERSION)
-		return;
 	auto numChunks = dsIn->Read<uint32_t>();
 	m_chunks.reserve(numChunks);
 	for(auto i = decltype(numChunks) {0u}; i < numChunks; ++i)

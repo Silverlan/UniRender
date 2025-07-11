@@ -15,6 +15,7 @@ module;
 #include <optional>
 #include <atomic>
 #include <thread>
+#include <udm.hpp>
 
 export module pragma.scenekit:scene;
 
@@ -53,8 +54,17 @@ export namespace pragma::scenekit {
 	class TileManager;
 	enum class ColorTransform : uint8_t;
 	class DLLRTUTIL Scene : public std::enable_shared_from_this<Scene> {
-	  public:
-		static constexpr uint32_t SERIALIZATION_VERSION = 6;
+	public:
+		static constexpr udm::Version PRT_VERSION = 7;
+		static constexpr auto PRT_IDENTIFIER = "RTD";
+		static constexpr auto PRT_EXTENSION_BINARY = "prt_b";
+		static constexpr auto PRT_EXTENSION_ASCII = "prt";
+
+		static constexpr udm::Version PRTMC_VERSION = 2;
+		static constexpr auto PRTMC_IDENTIFIER = "RTMC";
+		static constexpr auto PRTMC_EXTENSION_BINARY = "prtmc_b";
+		static constexpr auto PRTMC_EXTENSION_ASCII = "prtmc";
+
 		struct DLLRTUTIL SerializationData {
 			std::string outputFileName;
 		};
@@ -138,8 +148,8 @@ export namespace pragma::scenekit {
 
 		struct DLLRTUTIL CreateInfo {
 			CreateInfo();
-			void Serialize(DataStream &ds) const;
-			void Deserialize(DataStream &ds, uint32_t version);
+			void Serialize(udm::LinkedPropertyWrapper &data) const;
+			void Deserialize(udm::LinkedPropertyWrapper &data);
 
 			std::string renderer = "cycles";
 			std::optional<uint32_t> samples = {};
@@ -156,9 +166,9 @@ export namespace pragma::scenekit {
 		static bool IsLightmapRenderMode(RenderMode renderMode);
 		static bool IsBakingRenderMode(RenderMode renderMode);
 		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, RenderMode renderMode, const CreateInfo &createInfo = {});
-		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir, RenderMode renderMode, const CreateInfo &createInfo = {});
-		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, DataStream &dsIn, const std::string &rootDir);
-		static bool ReadHeaderInfo(DataStream &ds, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo = nullptr);
+		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, udm::AssetDataArg data, const std::string &rootDir, RenderMode renderMode, const CreateInfo &createInfo = {});
+		static std::shared_ptr<Scene> Create(NodeManager &nodeManager, udm::AssetDataArg data, const std::string &rootDir);
+		static bool ReadHeaderInfo(udm::AssetDataArg data, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo = nullptr);
 		//
 		static std::optional<std::string> GetAbsSkyPath(const std::string &skyTex);
 		static std::string ToRelativePath(const std::string &absPath);
@@ -202,9 +212,9 @@ export namespace pragma::scenekit {
 		static void SetVerbose(bool verbose);
 		static bool IsVerbose();
 
-		static bool ReadSerializationHeader(DataStream &dsIn, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo = nullptr);
-		void Save(DataStream &dsOut, const std::string &rootDir, const SerializationData &serializationData) const;
-		bool Load(DataStream &dsIn, const std::string &rootDir);
+		static bool ReadSerializationHeader(udm::AssetDataArg data, RenderMode &outRenderMode, CreateInfo &outCreateInfo, SerializationData &outSerializationData, uint32_t &outVersion, SceneInfo *optOutSceneInfo = nullptr);
+		void Save(udm::AssetDataArg outData, const std::string &rootDir, const SerializationData &serializationData) const;
+		bool Load(const udm::AssetData &data, const std::string &rootDir);
 
 		void HandleError(const std::string &errMsg) const;
 

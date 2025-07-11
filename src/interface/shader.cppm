@@ -8,9 +8,11 @@ module;
 #include <functional>
 #include <sharedutils/datastream.h>
 #include <sharedutils/util_hair.hpp>
+#include <sharedutils/uuid.h>
 #include <sharedutils/util_virtual_shared_from_this.hpp>
 #include <udm.hpp>
 #include <mathutil/transform.hpp>
+#include <iostream>
 
 export module pragma.scenekit:shader;
 
@@ -29,6 +31,8 @@ export namespace pragma::scenekit {
 	struct DLLRTUTIL NodeDescLink {
 		Socket fromSocket;
 		Socket toSocket;
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const;
+		void Deserialize(GroupNodeDesc &groupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap);
 		void Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const;
 		void Deserialize(GroupNodeDesc &groupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable);
 	};
@@ -38,6 +42,8 @@ export namespace pragma::scenekit {
 	struct NodeSocketDesc {
 		SocketIO io = SocketIO::None;
 		DataValue dataValue {};
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		static NodeSocketDesc Deserialize(udm::LinkedPropertyWrapper &data);
 		void Serialize(DataStream &dsOut) const;
 		static NodeSocketDesc Deserialize(DataStream &dsIn);
 	};
@@ -58,6 +64,7 @@ export namespace pragma::scenekit {
 		virtual bool IsGroupNode() const { return false; }
 
 		NodeIndex GetIndex() const;
+		util::Uuid GetUuid() const { return m_uuid; }
 
 		operator Socket() const;
 		Socket operator-() const { return static_cast<Socket>(*this).operator-(); }
@@ -124,6 +131,8 @@ export namespace pragma::scenekit {
 			return prop.dataValue.ToValue<T>();
 		}
 
+		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const;
+		virtual void DeserializeNodes(udm::LinkedPropertyWrapper &data);
 		virtual void SerializeNodes(DataStream &dsOut) const;
 		virtual void DeserializeNodes(DataStream &dsIn);
 		std::optional<Socket> FindInputSocket(const std::string &name);
@@ -155,6 +164,7 @@ export namespace pragma::scenekit {
 		template<class TNodeDesc>
 		static std::shared_ptr<TNodeDesc> Create(GroupNodeDesc *parent);
 		NodeDesc();
+		NodeDesc(util::Uuid uuid);
 
 		template<typename T>
 		void SetProperty(std::unordered_map<std::string, NodeSocketDesc> &properties, const std::string &name, const T &value)
@@ -250,6 +260,7 @@ export namespace pragma::scenekit {
 			static_assert(umath::to_integral(SocketType::Count) == 16);
 			return nullptr;
 		}
+		util::Uuid m_uuid;
 		std::string m_typeName;
 		std::string m_name;
 		std::unordered_map<std::string, NodeSocketDesc> m_inputs;
@@ -292,9 +303,17 @@ export namespace pragma::scenekit {
 		Socket ToGrayScale(const Socket &socket);
 		void Link(const Socket &fromSocket, const Socket &toSocket);
 		void Link(NodeDesc &fromNode, const std::string &fromSocket, NodeDesc &toNode, const std::string &toSocket);
+		void Serialize(udm::LinkedPropertyWrapper &data);
+		void Deserialize(udm::LinkedPropertyWrapper &data);
 		void Serialize(DataStream &dsOut);
 		void Deserialize(DataStream &dsOut);
 	  protected:
+		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const override;
+		void SerializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, util::Uuid> &nodeUuidMap);
+
+		virtual void DeserializeNodes(udm::LinkedPropertyWrapper &data) override;
+		void DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::vector<const NodeDesc *> &nodeIndexTable);
+
 		virtual void SerializeNodes(DataStream &dsOut) const override;
 		void SerializeLinks(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable);
 
@@ -330,6 +349,9 @@ export namespace pragma::scenekit {
 
 		void SetActivePass(Pass pass);
 		std::shared_ptr<pragma::scenekit::GroupNodeDesc> GetActivePassNode() const;
+
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 
 		void Serialize(DataStream &dsOut) const;
 		void Deserialize(DataStream &dsIn, NodeManager &nodeManager);

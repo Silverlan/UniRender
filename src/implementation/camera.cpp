@@ -6,6 +6,7 @@ module;
 #include <mathutil/camera.hpp>
 #include <sharedutils/util_weak_handle.hpp>
 #include <sharedutils/datastream.h>
+#include <udm.hpp>
 
 module pragma.scenekit;
 
@@ -22,15 +23,54 @@ Camera::Camera(Scene &scene) : WorldObject {}, SceneObject {scene} {}
 
 util::WeakHandle<Camera> Camera::GetHandle() { return util::WeakHandle<Camera> {shared_from_this()}; }
 
-void Camera::Serialize(DataStream &dsOut) const
+void Camera::Serialize(udm::LinkedPropertyWrapper &data) const
 {
-	WorldObject::Serialize(dsOut);
-	Scene::SerializeDataBlock(*this, dsOut, offsetof(Camera, m_type));
+	WorldObject::Serialize(data);
+
+	auto &udm = data;
+	udm["type"] << m_type;
+	udm["width"] << m_width;
+	udm["height"] << m_height;
+	udm["nearZ"] << m_nearZ;
+	udm["farZ"] << m_farZ;
+	udm["fov"] << m_fov;
+	udm["focalDistance"] << m_focalDistance;
+	udm["apertureSize"] << m_apertureSize;
+	udm["apertureRatio"] << m_apertureRatio;
+	udm["bladeCount"] << m_numBlades;
+	udm["bladesRotation"] << m_bladesRotation;
+	udm["panoramaType"] << m_panoramaType;
+	udm["interocularDistance"] << m_interocularDistance;
+	udm["longitudeMin"] << m_longitudeMin;
+	udm["longitudeMax"] << m_longitudeMax;
+	udm["latitudeMin"] << m_latitudeMin;
+	udm["latitudeMax"] << m_latitudeMax;
+	udm["dofEnabled"] << m_dofEnabled;
+	udm["stereoscopic"] << m_stereoscopic;
 }
-void Camera::Deserialize(uint32_t version, DataStream &dsIn)
+void Camera::Deserialize(udm::LinkedPropertyWrapper &data)
 {
-	WorldObject::Deserialize(version, dsIn);
-	Scene::DeserializeDataBlock(*this, dsIn, offsetof(Camera, m_type));
+	WorldObject::Deserialize(data);
+	auto &udm = data;
+	udm["type"] >> m_type;
+	udm["width"] >> m_width;
+	udm["height"] >> m_height;
+	udm["nearZ"] >> m_nearZ;
+	udm["farZ"] >> m_farZ;
+	udm["fov"] >> m_fov;
+	udm["focalDistance"] >> m_focalDistance;
+	udm["apertureSize"] >> m_apertureSize;
+	udm["apertureRatio"] >> m_apertureRatio;
+	udm["bladeCount"] >> m_numBlades;
+	udm["bladesRotation"] >> m_bladesRotation;
+	udm["panoramaType"] >> m_panoramaType;
+	udm["interocularDistance"] >> m_interocularDistance;
+	udm["longitudeMin"] >> m_longitudeMin;
+	udm["longitudeMax"] >> m_longitudeMax;
+	udm["latitudeMin"] >> m_latitudeMin;
+	udm["latitudeMax"] >> m_latitudeMax;
+	udm["dofEnabled"] >> m_dofEnabled;
+	udm["stereoscopic"] >> m_stereoscopic;
 }
 
 void Camera::SetInterocularDistance(umath::Millimeter dist) { m_interocularDistance = dist; }

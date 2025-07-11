@@ -6,6 +6,7 @@ module;
 #include "definitions.hpp"
 #include <sharedutils/util_weak_handle.hpp>
 #include <mathutil/transform.hpp>
+#include <udm.hpp>
 #include <memory>
 #include <optional>
 #include <functional>
@@ -26,7 +27,7 @@ export namespace pragma::scenekit {
 	  public:
 		enum class Flags : uint8_t { None = 0u, EnableSubdivision = 1u };
 		static PObject Create(Mesh &mesh);
-		static PObject Create(uint32_t version, DataStream &dsIn, const std::function<PMesh(uint32_t)> &fGetMesh);
+		static PObject Create(udm::LinkedPropertyWrapper &data, const std::function<PMesh(uint32_t)> &fGetMesh);
 		util::WeakHandle<Object> GetHandle();
 		virtual void DoFinalize(Scene &scene) override;
 
@@ -36,9 +37,9 @@ export namespace pragma::scenekit {
 		const Mesh &GetMesh() const;
 		Mesh &GetMesh();
 
-		void Serialize(DataStream &dsOut, const std::function<std::optional<uint32_t>(const Mesh &)> &fGetMeshIndex) const;
-		void Serialize(DataStream &dsOut, const std::unordered_map<const Mesh *, size_t> &meshToIndexTable) const;
-		void Deserialize(uint32_t version, DataStream &dsIn, const std::function<PMesh(uint32_t)> &fGetMesh);
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Mesh &)> &fGetMeshIndex) const;
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const Mesh *, size_t> &meshToIndexTable) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data, const std::function<PMesh(uint32_t)> &fGetMesh);
 
 		const umath::Transform &GetMotionPose() const;
 		void SetMotionPose(const umath::Transform &pose);

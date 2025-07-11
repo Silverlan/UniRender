@@ -7,6 +7,7 @@ module;
 #include <mathutil/umath.h>
 #include <optional>
 #include <sharedutils/datastream.h>
+#include <udm.hpp>
 
 module pragma.scenekit;
 
@@ -120,6 +121,133 @@ pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(DataStream 
 			STColorArray values {};
 			values.resize(n);
 			dsIn->Read(values.data(), values.size() * sizeof(values.front()));
+			return DataValue::Create<STColorArray, SocketType::Transform>(std::move(values));
+		}
+	case SocketType::Closure:
+	case SocketType::Node:
+		return DataValue {type, nullptr};
+	}
+	//unreachable, unless it went seriously wrong.
+	return DataValue {type, nullptr};
+}
+void pragma::scenekit::DataValue::Serialize(udm::LinkedPropertyWrapper &data) const
+{
+	data["type"] << type;
+	if (value == nullptr) {
+		data["value"] << udm::Nil {};
+		return;
+	}
+	switch(type) {
+	case SocketType::Bool:
+		data["value"] << *static_cast<STBool *>(value.get());
+		break;
+	case SocketType::Float:
+		data["value"] <<*static_cast<STFloat *>(value.get());
+		break;
+	case SocketType::Int:
+		data["value"] << *static_cast<STInt *>(value.get());
+		break;
+	case SocketType::UInt:
+		data["value"] << *static_cast<STUInt *>(value.get());
+		break;
+	case SocketType::Color:
+		data["value"] << *static_cast<STColor *>(value.get());
+		break;
+	case SocketType::Vector:
+		data["value"] << *static_cast<STVector *>(value.get());
+		break;
+	case SocketType::Point:
+		data["value"] << *static_cast<STPoint *>(value.get());
+		break;
+	case SocketType::Normal:
+		data["value"] << *static_cast<STNormal *>(value.get());
+		break;
+	case SocketType::Point2:
+		data["value"] << *static_cast<STPoint2 *>(value.get());
+		break;
+	case SocketType::Enum:
+		data["value"] << *static_cast<STEnum *>(value.get());
+		break;
+	case SocketType::Transform:
+		data["value"] << glm::transpose(*static_cast<STTransform *>(value.get()));
+		break;
+	case SocketType::String:
+		data["value"] << *static_cast<STString *>(value.get());
+		break;
+	case SocketType::FloatArray:
+		{
+			auto &v = *static_cast<STFloatArray *>(value.get());
+			data.AddArray<float>("value", v);
+			break;
+		}
+	case SocketType::ColorArray:
+		{
+			auto &v = *static_cast<STColorArray *>(value.get());
+			data.AddArray<Vector3>("value", v);
+			break;
+		}
+	case SocketType::Closure:
+	case SocketType::Node:
+		break;
+	}
+	static_assert(umath::to_integral(SocketType::Count) == 16);
+}
+pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(udm::LinkedPropertyWrapper &data)
+{
+	auto type = SocketType::Invalid;
+	data["type"] >> type;
+	if(!data["value"])
+		return DataValue {type, nullptr};
+	auto loadVal = [&data, type]<typename T, SocketType SOCKET_TYPE>() {
+		if constexpr(std::is_same_v<T, glm::mat4x3>) {
+			udm::Mat3x4 m;
+			if (data["value"] >> m)
+				return DataValue::Create<T, SOCKET_TYPE>(glm::transpose(m));
+		}
+		else {
+			T val;
+			if (data["value"] >> val)
+				return DataValue::Create<T, SOCKET_TYPE>(val);
+		}
+		return DataValue {type, nullptr};
+	};
+	switch(type) {
+	case SocketType::Bool:
+		return loadVal.template operator()<STBool, SocketType::Bool>();
+	case SocketType::Float:
+			return loadVal.template operator()<STFloat, SocketType::Float>();
+	case SocketType::Int:
+			return loadVal.template operator()<STInt, SocketType::Int>();
+	case SocketType::UInt:
+			return loadVal.template operator()<STUInt, SocketType::UInt>();
+	case SocketType::Color:
+			return loadVal.template operator()<STColor, SocketType::Color>();
+	case SocketType::Vector:
+			return loadVal.template operator()<STVector, SocketType::Vector>();
+	case SocketType::Point:
+			return loadVal.template operator()<STPoint, SocketType::Point>();
+	case SocketType::Normal:
+			return loadVal.template operator()<STNormal, SocketType::Normal>();
+	case SocketType::Point2:
+			return loadVal.template operator()<STPoint2, SocketType::Point2>();
+	case SocketType::Enum:
+			return loadVal.template operator()<STEnum, SocketType::Enum>();
+	case SocketType::Transform:
+			return loadVal.template operator()<STTransform, SocketType::Transform>();
+	case SocketType::String:
+			return loadVal.template operator()<STString, SocketType::String>();
+	case SocketType::FloatArray:
+		{
+			auto udmVal = data["value"];
+			STFloatArray values {};
+			udmVal >> values;
+			return DataValue::Create<STFloatArray, SocketType::Transform>(std::move(values));
+		}
+	case SocketType::ColorArray:
+		{
+			auto udmVal = data["value"];
+			STColorArray values {};
+			udmVal >> values;
 			return DataValue::Create<STColorArray, SocketType::Transform>(std::move(values));
 		}
 	case SocketType::Closure:

@@ -8,6 +8,7 @@ module;
 #include <unordered_map>
 #include <mathutil/umath.h>
 #include <sharedutils/datastream.h>
+#include <udm.hpp>
 
 #undef GetObject
 
@@ -25,6 +26,7 @@ export namespace pragma::scenekit {
 	class DLLRTUTIL ShaderCache : public std::enable_shared_from_this<ShaderCache> {
 	  public:
 		static std::shared_ptr<ShaderCache> Create();
+		static std::shared_ptr<ShaderCache> Create(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 		static std::shared_ptr<ShaderCache> Create(DataStream &ds, NodeManager &nodeManager);
 
 		const std::vector<std::shared_ptr<Shader>> &GetShaders() const;
@@ -38,6 +40,9 @@ export namespace pragma::scenekit {
 
 		std::unordered_map<const Shader *, size_t> GetShaderToIndexTable() const;
 
+		void Serialize(udm::LinkedPropertyWrapper &data);
+		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
+
 		void Serialize(DataStream &dsOut);
 		void Deserialize(DataStream &dsIn, NodeManager &nodeManager);
 	  private:
@@ -50,6 +55,7 @@ export namespace pragma::scenekit {
 		static constexpr uint32_t MURMUR_SEED = 195574;
 		enum class Flags : uint8_t { None = 0u, HasBakedData = 1u, HasUnbakedData = HasBakedData << 1u };
 		ModelCacheChunk(ShaderCache &shaderCache);
+		ModelCacheChunk(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
 		ModelCacheChunk(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager);
 		void Bake();
 		void GenerateUnbakedData(bool force = false);
@@ -67,6 +73,9 @@ export namespace pragma::scenekit {
 		std::vector<std::shared_ptr<Mesh>> &GetMeshes();
 		const std::vector<std::shared_ptr<Object>> &GetObjects() const;
 		std::vector<std::shared_ptr<Object>> &GetObjects();
+
+		void Serialize(udm::LinkedPropertyWrapper &data);
+		void Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
 
 		void Serialize(DataStream &dsOut);
 		void Deserialize(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager);
@@ -88,15 +97,18 @@ export namespace pragma::scenekit {
 
 		std::vector<DataStream> m_bakedObjects;
 		std::vector<DataStream> m_bakedMeshes;
-		uint32_t m_serializationVersion;
 	};
 
 	class DLLRTUTIL ModelCache : public std::enable_shared_from_this<ModelCache> {
 	  public:
 		static std::shared_ptr<ModelCache> Create();
+		static std::shared_ptr<ModelCache> Create(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
 		static std::shared_ptr<ModelCache> Create(DataStream &ds, pragma::scenekit::NodeManager &nodeManager);
 
 		void Merge(ModelCache &other);
+
+		void Serialize(udm::LinkedPropertyWrapper &data);
+		void Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
 
 		void Serialize(DataStream &dsOut);
 		void Deserialize(DataStream &dsIn, pragma::scenekit::NodeManager &nodeManager);

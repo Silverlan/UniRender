@@ -6,6 +6,7 @@ module;
 #include <sharedutils/datastream.h>
 #include <mathutil/uvec.h>
 #include <mathutil/transform.hpp>
+#include <udm.hpp>
 
 module pragma.scenekit;
 
@@ -25,13 +26,15 @@ const Vector3 &pragma::scenekit::WorldObject::GetScale() const { return m_pose.G
 umath::ScaledTransform &pragma::scenekit::WorldObject::GetPose() { return m_pose; }
 const umath::ScaledTransform &pragma::scenekit::WorldObject::GetPose() const { return const_cast<WorldObject *>(this)->GetPose(); }
 
-void pragma::scenekit::WorldObject::Serialize(DataStream &dsOut) const
+void pragma::scenekit::WorldObject::Serialize(udm::LinkedPropertyWrapper &data) const
 {
-	dsOut->Write(m_pose);
-	dsOut->Write(m_uuid);
+	data["pose"] << m_pose;
+	data["uuid"] << util::uuid_to_string(m_uuid);
 }
-void pragma::scenekit::WorldObject::Deserialize(uint32_t version, DataStream &dsIn)
+void pragma::scenekit::WorldObject::Deserialize(udm::LinkedPropertyWrapper &data)
 {
-	m_pose = dsIn->Read<decltype(m_pose)>();
-	m_uuid = dsIn->Read<decltype(m_uuid)>();
+	data["pose"] >> m_pose;
+	std::string uuid;
+	data["uuid"] >> uuid;
+	m_uuid = util::uuid_string_to_bytes(uuid);
 }

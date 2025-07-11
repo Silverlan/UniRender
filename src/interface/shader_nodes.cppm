@@ -6,6 +6,7 @@ module;
 #include "definitions.hpp"
 #include <sharedutils/util_hash.hpp>
 #include <mathutil/color.h>
+#include <udm.hpp>
 #include <optional>
 #include <functional>
 #include <memory>
@@ -74,6 +75,9 @@ export namespace pragma::scenekit {
 		NodeDesc *GetNode(std::string &outSocketName) const;
 		NodeDesc *GetNode() const;
 		std::optional<DataValue> GetValue() const;
+
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const;
+		void Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap);
 
 		void Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const;
 		void Deserialize(GroupNodeDesc &parentGroupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable);

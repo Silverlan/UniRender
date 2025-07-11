@@ -7,6 +7,7 @@ module;
 #include <sharedutils/util.h>
 #include <mathutil/uvec.h>
 #include <mathutil/transform.hpp>
+#include <udm.hpp>
 
 export module pragma.scenekit:world_object;
 
@@ -31,8 +32,8 @@ export namespace pragma::scenekit {
 		void SetUuid(const util::Uuid &uuid) { m_uuid = uuid; }
 		const util::Uuid &GetUuid() const { return m_uuid; }
 
-		void Serialize(DataStream &dsOut) const;
-		void Deserialize(uint32_t version, DataStream &dsIn);
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data);
 	  protected:
 		WorldObject();
 	  private:

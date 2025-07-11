@@ -3,6 +3,7 @@
 
 module;
 
+#include <udm.hpp>
 #include <mathutil/umath_lighting.hpp>
 #include <mathutil/color.h>
 #include <sharedutils/util_pragma.hpp>
@@ -20,10 +21,10 @@ pragma::scenekit::PLight pragma::scenekit::Light::Create()
 	return pLight;
 }
 
-pragma::scenekit::PLight pragma::scenekit::Light::Create(uint32_t version, DataStream &dsIn)
+pragma::scenekit::PLight pragma::scenekit::Light::Create(udm::LinkedPropertyWrapper &data)
 {
 	auto light = Create();
-	light->Deserialize(version, dsIn);
+	light->Deserialize(data);
 	return light;
 }
 
@@ -53,16 +54,41 @@ void pragma::scenekit::Light::SetAxisV(const Vector3 &axisV) { m_axisV = axisV; 
 void pragma::scenekit::Light::SetSizeU(float sizeU) { m_sizeU = sizeU; }
 void pragma::scenekit::Light::SetSizeV(float sizeV) { m_sizeV = sizeV; }
 
-void pragma::scenekit::Light::Serialize(DataStream &dsOut) const
+void pragma::scenekit::Light::Serialize(udm::LinkedPropertyWrapper &data) const
 {
-	WorldObject::Serialize(dsOut);
-	Scene::SerializeDataBlock(*this, dsOut, offsetof(Light, m_size));
+	WorldObject::Serialize(data);
+	auto &udm = data;
+	udm["size"] << m_size;
+	udm["color"] << m_color;
+	udm["intensity"] << m_intensity;
+	udm["type"] << m_type;
+	udm["blendFraction"] << m_blendFraction;
+	udm["spotOuterAngle"] << m_spotOuterAngle;
+	udm["axisU"] << m_axisU;
+	udm["axisV"] << m_axisV;
+	udm["sizeU"] << m_sizeU;
+	udm["sizeV"] << m_sizeV;
+	udm["round"] << m_bRound;
+	// udm["flags"] << udm::flags_to_string(m_flags);
 }
 
-void pragma::scenekit::Light::Deserialize(uint32_t version, DataStream &dsIn)
+void pragma::scenekit::Light::Deserialize(udm::LinkedPropertyWrapper &data)
 {
-	WorldObject::Deserialize(version, dsIn);
-	Scene::DeserializeDataBlock(*this, dsIn, offsetof(Light, m_size));
+	WorldObject::Deserialize(data);
+	auto &udm = data;
+	udm["size"] >> m_size;
+	udm["color"] >> m_color;
+	udm["intensity"] >> m_intensity;
+	udm["type"] >> m_type;
+	udm["blendFraction"] >> m_blendFraction;
+	udm["spotOuterAngle"] >> m_spotOuterAngle;
+	udm["axisU"] >> m_axisU;
+	udm["axisV"] >> m_axisV;
+	udm["sizeU"] >> m_sizeU;
+	udm["sizeV"] >> m_sizeV;
+	udm["round"] >> m_bRound;
+	m_flags = Flags::None;
+	// m_flags = udm::string_to_flags(udm["flags"], Flags::None);
 }
 
 void pragma::scenekit::Light::DoFinalize(Scene &scene) {}

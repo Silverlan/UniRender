@@ -8,6 +8,7 @@ module;
 #include <sharedutils/util_weak_handle.hpp>
 #include <memory>
 #include <optional>
+#include <udm.hpp>
 
 export module pragma.scenekit:camera;
 
@@ -31,8 +32,8 @@ export namespace pragma::scenekit {
 		void SetEquirectangularVerticalRange(umath::Degree range);
 		void SetStereoscopic(bool stereo);
 
-		void Serialize(DataStream &dsOut) const;
-		void Deserialize(uint32_t version, DataStream &dsIn);
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data);
 
 		void SetResolution(uint32_t width, uint32_t height);
 		void GetResolution(uint32_t &width, uint32_t &height) const;
