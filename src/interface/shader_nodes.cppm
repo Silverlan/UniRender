@@ -76,11 +76,8 @@ export namespace pragma::scenekit {
 		NodeDesc *GetNode() const;
 		std::optional<DataValue> GetValue() const;
 
-		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const;
-		void Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap);
-
-		void Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const;
-		void Deserialize(GroupNodeDesc &parentGroupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable);
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable);
 
 		Socket operator-() const;
 		Socket operator+(float f) const;

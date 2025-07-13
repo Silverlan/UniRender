@@ -31,10 +31,9 @@ export namespace pragma::scenekit {
 	struct DLLRTUTIL NodeDescLink {
 		Socket fromSocket;
 		Socket toSocket;
-		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const;
-		void Deserialize(GroupNodeDesc &groupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap);
-		void Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const;
-		void Deserialize(GroupNodeDesc &groupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable);
+
+		void Serialize(udm::LinkedPropertyWrapper &data) const;
+		void Deserialize(GroupNodeDesc &groupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable);
 	};
 
 	enum class SocketIO : uint8_t { None = 0u, In = 1u, Out = In << 1u };
@@ -44,8 +43,6 @@ export namespace pragma::scenekit {
 		DataValue dataValue {};
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
 		static NodeSocketDesc Deserialize(udm::LinkedPropertyWrapper &data);
-		void Serialize(DataStream &dsOut) const;
-		static NodeSocketDesc Deserialize(DataStream &dsIn);
 	};
 
 	using NodeIndex = uint32_t;
@@ -131,10 +128,8 @@ export namespace pragma::scenekit {
 			return prop.dataValue.ToValue<T>();
 		}
 
-		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const;
+		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data) const;
 		virtual void DeserializeNodes(udm::LinkedPropertyWrapper &data);
-		virtual void SerializeNodes(DataStream &dsOut) const;
-		virtual void DeserializeNodes(DataStream &dsIn);
 		std::optional<Socket> FindInputSocket(const std::string &name);
 		std::optional<Socket> FindOutputSocket(const std::string &name);
 		std::optional<Socket> FindProperty(const std::string &name);
@@ -305,20 +300,11 @@ export namespace pragma::scenekit {
 		void Link(NodeDesc &fromNode, const std::string &fromSocket, NodeDesc &toNode, const std::string &toSocket);
 		void Serialize(udm::LinkedPropertyWrapper &data);
 		void Deserialize(udm::LinkedPropertyWrapper &data);
-		void Serialize(DataStream &dsOut);
-		void Deserialize(DataStream &dsOut);
 	  protected:
-		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const override;
-		void SerializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, util::Uuid> &nodeUuidMap);
+		virtual void SerializeNodes(udm::LinkedPropertyWrapper &data) const override;
 
 		virtual void DeserializeNodes(udm::LinkedPropertyWrapper &data) override;
-		void DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::vector<const NodeDesc *> &nodeIndexTable);
-
-		virtual void SerializeNodes(DataStream &dsOut) const override;
-		void SerializeLinks(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable);
-
-		virtual void DeserializeNodes(DataStream &dsIn) override;
-		void DeserializeLinks(DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable);
+		void DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable);
 
 		std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator ResolveGroupNodes(std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator itParent);
 		pragma::scenekit::NodeDesc &AddNormalMapNodeDesc(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, float strength = 1.f);
@@ -352,9 +338,6 @@ export namespace pragma::scenekit {
 
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
 		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
-
-		void Serialize(DataStream &dsOut) const;
-		void Deserialize(DataStream &dsIn, NodeManager &nodeManager);
 
 		const std::optional<util::HairConfig> &GetHairConfig() const { return m_hairConfig; }
 		void SetHairConfig(const util::HairConfig &hairConfig) { m_hairConfig = hairConfig; }

@@ -403,7 +403,7 @@ enum class ValueType : uint8_t {
 	ConreteValue,
 	Reference,
 };
-void pragma::scenekit::Socket::Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const
+void pragma::scenekit::Socket::Serialize(udm::LinkedPropertyWrapper &data) const
 {
 	if(IsValid() == false) {
 		data["valueType"] << ValueType::Invalid;
@@ -416,20 +416,68 @@ void pragma::scenekit::Socket::Serialize(udm::LinkedPropertyWrapper &data, const
 		return;
 	}
 	data["valueType"] << ValueType::Reference;
-	auto it = nodeUuidMap.find(GetNode());
-	UTIL_ASSERT(it != nodeUuidMap.end());
+	data["nodeUuid"] = util::uuid_to_string(GetNode()->GetUuid());
+	data["socketName"] << m_nodeSocketRef.socketName;
+	data["output"] << m_nodeSocketRef.output;
+}
+void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable)
+{
+	auto type = ValueType::Invalid;
+	data["valueType"] >> type;
+
+	switch(type) {
+		case ValueType::Invalid:
+			return;
+		case ValueType::ConreteValue:
+		{
+			auto udmData = data["value"];
+			m_value = DataValue::Deserialize(udmData);
+			break;
+		}
+		case ValueType::Reference:
+		{
+			std::string uuid;
+			data["nodeUuid"] >> uuid;
+			auto it = nodeIndexTable.find(uuid);
+			assert(it != nodeIndexTable.end());
+			auto *node = it->second;
+			if(node == nullptr)
+				throw Exception {"Invalid parent node"};
+			m_nodeSocketRef.node = const_cast<NodeDesc *>(node)->shared_from_this();
+			data["socketName"] >> m_nodeSocketRef.socketName;
+			data["output"] >> m_nodeSocketRef.output;
+			break;
+		}
+	}
+}
+/*
+void pragma::scenekit::Socket::Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const
+{
+	if(IsValid() == false) {
+		data["valueType"] << ValueType::Invalid;
+		return;
+	}
+	if(IsConcreteValue()) {
+		data["valueType"] << ValueType::ConreteValue;
+		auto udmValue = data["value"];
+		m_value->Serialize(udmValue);
+		return;
+	}
+	data["valueType"] << ValueType::Reference;
+	auto it = nodeIndexTable.find(GetNode());
+	UTIL_ASSERT(it != nodeIndexTable.end());
 	auto udmValue = data["value"];
-	udmValue["nodeUuid"] << it->second;
+	udmValue["nodeIndex"] << it->second;
 	udmValue["socketName"] << m_nodeSocketRef.socketName;
 	udmValue["output"] << m_nodeSocketRef.output;
 }
-void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap)
+void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, udm::LinkedPropertyWrapper &data, const std::vector<const NodeDesc *> &nodeIndexTable)
 {
 	auto type = ValueType::Invalid;
 	data["valueType"] >> type;
 	switch(type) {
 		case ValueType::Invalid:
-		return;
+			return;
 		case ValueType::ConreteValue:
 		{
 			auto udmValue = data["value"];
@@ -439,64 +487,16 @@ void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, udm::
 		case ValueType::Reference:
 		{
 			auto udmValue = data["value"];
-			std::string strUuid;
-			udmValue["nodeUuid"] >> strUuid;
-			auto it = nodeUuidMap.find(strUuid);
-			if(it == nodeUuidMap.end())
-				throw Exception {"Invalid parent node"};
-			m_nodeSocketRef.node = const_cast<NodeDesc *>(it->second)->shared_from_this();
+			NodeIndex nodeIndex = 0;
+			udmValue["nodeIndex"] >> nodeIndex;
+			m_nodeSocketRef.node = const_cast<NodeDesc *>(nodeIndexTable[nodeIndex])->shared_from_this();
 			udmValue["socketName"] >> m_nodeSocketRef.socketName;
 			udmValue["output"] >> m_nodeSocketRef.output;
 			break;
 		}
 	}
 }
-void pragma::scenekit::Socket::Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const
-{
-	if(IsValid() == false) {
-		dsOut->Write<uint8_t>(0);
-		return;
-	}
-	if(IsConcreteValue()) {
-		dsOut->Write<uint8_t>(1);
-		m_value->Serialize(dsOut);
-		return;
-	}
-	dsOut->Write<uint8_t>(2);
-	auto it = nodeIndexTable.find(GetNode());
-	assert(it != nodeIndexTable.end());
-	if(it == nodeIndexTable.end())
-		throw Exception {"Invalid parent node"};
-	dsOut->Write<NodeIndex>(it->second);
-	dsOut->WriteString(m_nodeSocketRef.socketName);
-	dsOut->Write<bool>(m_nodeSocketRef.output);
-}
-void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable)
-{
-	auto type = dsIn->Read<uint8_t>();
-	switch(type) {
-		case 0:
-			return;
-		case 1:
-		{
-			m_value = DataValue::Deserialize(dsIn);
-			break;
-		}
-		case 2:
-		{
-			auto idx = dsIn->Read<NodeIndex>();
-			assert(idx < nodeIndexTable.size());
-			auto *node = nodeIndexTable.at(idx);
-			if(node == nullptr)
-				throw Exception {"Invalid parent node"};
-			m_nodeSocketRef.node = const_cast<NodeDesc *>(node)->shared_from_this();
-			m_nodeSocketRef.socketName = dsIn->ReadString();
-			m_nodeSocketRef.output = dsIn->Read<bool>();
-			break;
-		}
-	}
-}
-
+*/
 std::ostream &operator<<(std::ostream &os, const pragma::scenekit::Socket &socket)
 {
 	os << socket.ToString();

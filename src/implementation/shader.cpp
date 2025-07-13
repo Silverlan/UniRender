@@ -18,39 +18,26 @@ module;
 module pragma.scenekit;
 
 import :shader;
-
+#pragma clang optimize off
 const std::string pragma::scenekit::COLORSPACE_AUTO = "";
 const std::string pragma::scenekit::COLORSPACE_RAW = "__builtin_raw";
 const std::string pragma::scenekit::COLORSPACE_SRGB = "__builtin_srgb";
 
 //////////////////////
 
-void pragma::scenekit::NodeDescLink::Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, std::string> &nodeUuidMap) const
+void pragma::scenekit::NodeDescLink::Serialize(udm::LinkedPropertyWrapper &data) const
 {
 	auto udmFromSocket = data["fromSocket"];
-	fromSocket.Serialize(udmFromSocket, nodeUuidMap);
-
 	auto udmToSocket = data["toSocket"];
-	toSocket.Serialize(udmToSocket, nodeUuidMap);
+	fromSocket.Serialize(udmFromSocket);
+	toSocket.Serialize(udmToSocket);
 }
-void pragma::scenekit::NodeDescLink::Deserialize(GroupNodeDesc &groupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeUuidMap)
+void pragma::scenekit::NodeDescLink::Deserialize(GroupNodeDesc &groupNode, udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable)
 {
 	auto udmFromSocket = data["fromSocket"];
-	fromSocket.Deserialize(groupNode, udmFromSocket, nodeUuidMap);
-
 	auto udmToSocket = data["toSocket"];
-	toSocket.Deserialize(groupNode, udmToSocket, nodeUuidMap);
-}
-
-void pragma::scenekit::NodeDescLink::Serialize(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable) const
-{
-	fromSocket.Serialize(dsOut, nodeIndexTable);
-	toSocket.Serialize(dsOut, nodeIndexTable);
-}
-void pragma::scenekit::NodeDescLink::Deserialize(GroupNodeDesc &groupNode, DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable)
-{
-	fromSocket.Deserialize(groupNode, dsIn, nodeIndexTable);
-	toSocket.Deserialize(groupNode, dsIn, nodeIndexTable);
+	fromSocket.Deserialize(groupNode, udmFromSocket, nodeIndexTable);
+	toSocket.Deserialize(groupNode, udmToSocket, nodeIndexTable);
 }
 
 //////////////////////
@@ -66,19 +53,6 @@ void pragma::scenekit::NodeSocketDesc::Serialize(udm::LinkedPropertyWrapper &dat
 {
 	data["io"] << io;
 	dataValue.Serialize(data);
-}
-
-pragma::scenekit::NodeSocketDesc pragma::scenekit::NodeSocketDesc::Deserialize(DataStream &dsIn)
-{
-	NodeSocketDesc desc {};
-	desc.io = dsIn->Read<decltype(desc.io)>();
-	desc.dataValue = DataValue::Deserialize(dsIn);
-	return desc;
-}
-void pragma::scenekit::NodeSocketDesc::Serialize(DataStream &dsOut) const
-{
-	dsOut->Write(io);
-	dataValue.Serialize(dsOut);
 }
 
 //////////////////////
@@ -222,18 +196,19 @@ std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::FindProperty
 	auto *desc = FindPropertyDesc(name);
 	return desc ? Socket {*this, name, false} : std::optional<pragma::scenekit::Socket> {};
 }
-void pragma::scenekit::NodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const
+void pragma::scenekit::NodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data) const
 {
 	data["typeName"] << m_typeName;
 	data["name"] << m_name;
-	data["uuid"] << util::uuid_to_string(m_uuid);
+	data["uuid"] = util::uuid_to_string(m_uuid);
 	auto fWriteProperties = [&data](const std::string &identifier, const std::unordered_map<std::string, NodeSocketDesc> &props) {
 		auto udmData = data.AddArray(identifier, props.size());
 		size_t idx = 0;
 		for(auto &pair : props) {
 			auto udmProp = udmData[idx++];
 			udmProp["key"] << pair.first;
-			pair.second.Serialize(udmProp);
+			auto udmSocketDesc = udmProp["socketDesc"];
+			pair.second.Serialize(udmSocketDesc);
 		}
 	};
 	fWriteProperties("inputs", m_inputs);
@@ -247,8 +222,8 @@ void pragma::scenekit::NodeDesc::DeserializeNodes(udm::LinkedPropertyWrapper &da
 	data["typeName"] >> m_typeName;
 	data["name"] >> m_name;
 	std::string uuid;
-	if (data["uuid"] >> uuid)
-		m_uuid = util::uuid_string_to_bytes(uuid);
+	data["uuid"] >> uuid;
+	m_uuid = util::uuid_string_to_bytes(uuid);
 	auto fReadProperties = [&data](const std::string &identifier, std::unordered_map<std::string, NodeSocketDesc> &props) {
 		auto udmData = data[identifier];
 		auto n = udmData.GetSize();
@@ -257,7 +232,8 @@ void pragma::scenekit::NodeDesc::DeserializeNodes(udm::LinkedPropertyWrapper &da
 			auto udmProp = udmData[i];
 			std::string key;
 			udmProp["key"] >> key;
-			props[key] = NodeSocketDesc::Deserialize(udmProp);
+			auto udmSocketDesc = udmProp["socketDesc"];
+			props[key] = NodeSocketDesc::Deserialize(udmSocketDesc);
 		}
 	};
 	fReadProperties("inputs", m_inputs);
@@ -265,46 +241,6 @@ void pragma::scenekit::NodeDesc::DeserializeNodes(udm::LinkedPropertyWrapper &da
 	fReadProperties("outputs", m_outputs);
 
 	data["primaryOutputSocket"] >> m_primaryOutputSocket;
-}
-
-void pragma::scenekit::NodeDesc::SerializeNodes(DataStream &dsOut) const
-{
-	dsOut->WriteString(m_typeName);
-	dsOut->WriteString(m_name);
-	auto fWriteProperties = [&dsOut](const std::unordered_map<std::string, NodeSocketDesc> &props) {
-		dsOut->Write<uint32_t>(props.size());
-		for(auto &pair : props) {
-			dsOut->WriteString(pair.first);
-			pair.second.Serialize(dsOut);
-		}
-	};
-	fWriteProperties(m_inputs);
-	fWriteProperties(m_properties);
-	fWriteProperties(m_outputs);
-
-	dsOut->Write<bool>(m_primaryOutputSocket.has_value());
-	if(m_primaryOutputSocket.has_value())
-		dsOut->WriteString(*m_primaryOutputSocket);
-}
-void pragma::scenekit::NodeDesc::DeserializeNodes(DataStream &dsIn)
-{
-	m_typeName = dsIn->ReadString();
-	m_name = dsIn->ReadString();
-	auto fReadProperties = [&dsIn](std::unordered_map<std::string, NodeSocketDesc> &props) {
-		auto n = dsIn->Read<uint32_t>();
-		props.reserve(n);
-		for(auto i = decltype(n) {0u}; i < n; ++i) {
-			auto key = dsIn->ReadString();
-			props[key] = NodeSocketDesc::Deserialize(dsIn);
-		}
-	};
-	fReadProperties(m_inputs);
-	fReadProperties(m_properties);
-	fReadProperties(m_outputs);
-
-	auto hasPrimaryOutputSocket = dsIn->Read<bool>();
-	if(hasPrimaryOutputSocket)
-		m_primaryOutputSocket = dsIn->ReadString();
 }
 
 //////////////////////
@@ -695,190 +631,46 @@ pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::SeparateRGB(const S
 	Link(rgb, node.GetInputSocket(nodes::separate_rgb::IN_COLOR));
 	return node;
 }
-void pragma::scenekit::GroupNodeDesc::Serialize(DataStream &dsOut)
-{
-	// Root node; Build index list
-	std::unordered_map<const NodeDesc *, uint64_t> rootNodeIndexTable;
-	uint64_t idx = 0u;
-
-	std::function<void(const NodeDesc &)> fBuildIndexTable = nullptr;
-	fBuildIndexTable = [&fBuildIndexTable, &rootNodeIndexTable, &idx](const NodeDesc &node) {
-		rootNodeIndexTable[&node] = idx++;
-		if(node.IsGroupNode() == false)
-			return;
-		auto &nodeGroup = static_cast<const GroupNodeDesc &>(node);
-		for(auto &child : nodeGroup.GetChildNodes())
-			fBuildIndexTable(*child);
-	};
-	fBuildIndexTable(*this);
-	SerializeNodes(dsOut);
-	SerializeLinks(dsOut, rootNodeIndexTable);
-}
-void pragma::scenekit::GroupNodeDesc::SerializeNodes(DataStream &dsOut) const
-{
-	NodeDesc::SerializeNodes(dsOut);
-	dsOut->Write<uint32_t>(m_nodes.size());
-	for(auto &node : m_nodes) {
-		dsOut->Write<bool>(node->IsGroupNode());
-		node->SerializeNodes(dsOut);
-	}
-}
-void pragma::scenekit::GroupNodeDesc::SerializeLinks(DataStream &dsOut, const std::unordered_map<const NodeDesc *, uint64_t> &nodeIndexTable)
-{
-	auto fWriteNodeLinks = [&dsOut, &nodeIndexTable](const GroupNodeDesc &node) {
-		dsOut->Write<uint32_t>(node.m_links.size());
-		for(auto &link : node.m_links)
-			link.Serialize(dsOut, nodeIndexTable);
-	};
-
-	std::function<void(const GroupNodeDesc &)> fWriteLinks = nullptr;
-	fWriteLinks = [&fWriteLinks, &fWriteNodeLinks](const GroupNodeDesc &node) {
-		if(node.IsGroupNode() == false)
-			return;
-		fWriteNodeLinks(node);
-		for(auto &child : node.m_nodes) {
-			if(child->IsGroupNode() == false)
-				continue;
-			fWriteLinks(static_cast<GroupNodeDesc &>(*child));
-		}
-	};
-	fWriteLinks(*this);
-}
-void pragma::scenekit::GroupNodeDesc::Deserialize(DataStream &dsIn)
-{
-	DeserializeNodes(dsIn);
-
-	std::vector<const NodeDesc *> rootNodeIndexTable;
-	// Root node; Build index list
-	std::function<void(const NodeDesc &)> fBuildIndexTable = nullptr;
-	fBuildIndexTable = [&fBuildIndexTable, &rootNodeIndexTable](const NodeDesc &node) {
-		if(rootNodeIndexTable.size() == rootNodeIndexTable.capacity())
-			rootNodeIndexTable.reserve(rootNodeIndexTable.size() * 1.5 + 100);
-		rootNodeIndexTable.push_back(&node);
-		if(node.IsGroupNode() == false)
-			return;
-		auto &nodeGroup = static_cast<const GroupNodeDesc &>(node);
-		for(auto &child : nodeGroup.GetChildNodes())
-			fBuildIndexTable(*child);
-	};
-	fBuildIndexTable(*this);
-
-	DeserializeLinks(dsIn, rootNodeIndexTable);
-}
-void pragma::scenekit::GroupNodeDesc::DeserializeNodes(DataStream &dsIn)
-{
-	NodeDesc::DeserializeNodes(dsIn);
-	auto numNodes = dsIn->Read<uint32_t>();
-	m_nodes.reserve(numNodes);
-	for(auto i = decltype(numNodes) {0u}; i < numNodes; ++i) {
-		auto isGroupNode = dsIn->Read<bool>();
-		auto node = isGroupNode ? GroupNodeDesc::Create(m_nodeManager, this) : NodeDesc::Create(this);
-		node->DeserializeNodes(dsIn);
-		m_nodes.push_back(node);
-	}
-}
-void pragma::scenekit::GroupNodeDesc::DeserializeLinks(DataStream &dsIn, const std::vector<const NodeDesc *> &nodeIndexTable)
-{
-	auto fReadNodeLinks = [&dsIn, &nodeIndexTable](GroupNodeDesc &node) {
-		auto numLinks = dsIn->Read<uint32_t>();
-		node.m_links.resize(numLinks);
-		for(auto &link : node.m_links)
-			link.Deserialize(node, dsIn, nodeIndexTable);
-	};
-
-	std::function<void(GroupNodeDesc &)> fReadLinks = nullptr;
-	fReadLinks = [&fReadLinks, &fReadNodeLinks](GroupNodeDesc &node) {
-		if(node.IsGroupNode() == false)
-			return;
-		fReadNodeLinks(node);
-		for(auto &child : node.m_nodes) {
-			if(child->IsGroupNode() == false)
-				continue;
-			fReadLinks(static_cast<GroupNodeDesc &>(*child));
-		}
-	};
-	fReadLinks(*this);
-}
 void pragma::scenekit::GroupNodeDesc::Serialize(udm::LinkedPropertyWrapper &data)
 {
-	std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> nodeToUdmData;
-	SerializeNodes(data, nodeToUdmData);
-
-	// Root node; Build index list
-	std::unordered_map<const NodeDesc *, std::string> nodeUuidMap;
-
-	std::function<void(const NodeDesc &)> fBuildIndexTable = nullptr;
-	fBuildIndexTable = [&fBuildIndexTable, &nodeUuidMap](const NodeDesc &node) {
-		nodeUuidMap[&node] = util::uuid_to_string(node.GetUuid());
-		if(node.IsGroupNode() == false)
-			return;
-		auto &nodeGroup = static_cast<const GroupNodeDesc &>(node);
-		for(auto &child : nodeGroup.GetChildNodes())
-			fBuildIndexTable(*child);
-	};
-	fBuildIndexTable(*this);
-
-	for(auto &node : m_nodes) {
-		auto itUdmNode = nodeToUdmData.find(node.get());
-		UTIL_ASSERT(itUdmNode != nodeToUdmData.end());
-		auto &udmNode = itUdmNode->second;
-		if (node->IsGroupNode()) {
-			auto &groupNode = static_cast<GroupNodeDesc &>(*node);
-			auto &links = groupNode.GetLinks();
-			if (!links.empty()) {
-				auto udmLinks = udmNode.AddArray("links", links.size());
-				size_t idxLink = 0;
-				for(auto &link : links) {
-					auto udmLink = udmLinks[idxLink++];
-					link.Serialize(udmLink, nodeUuidMap);
-				}
-			}
-		}
-	}
-
-	//SerializeLinks(data, rootNodeIndexTable);
+	SerializeNodes(data);
 }
-void pragma::scenekit::GroupNodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data, std::unordered_map<NodeDesc*, udm::LinkedPropertyWrapper> &nodeToUdmData) const
+void pragma::scenekit::GroupNodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data) const
 {
-	NodeDesc::SerializeNodes(data, nodeToUdmData);
+	NodeDesc::SerializeNodes(data);
 	auto udmNodes = data.AddArray("nodes", m_nodes.size());
 	size_t idx = 0;
 	for(auto &node : m_nodes) {
 		auto udmNode = udmNodes[idx++];
 		udmNode["groupNode"] << node->IsGroupNode();
-		// udmNode["index"] << it->second;
-		node->SerializeNodes(udmNode, nodeToUdmData);
-		nodeToUdmData.insert(std::make_pair(node.get(), udmNode));
+		node->SerializeNodes(udmNode);
 	}
-}
-void pragma::scenekit::GroupNodeDesc::SerializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<const NodeDesc *, util::Uuid> &nodeUuidMap)
-{
-	/*auto fWriteNodeLinks = [&data, &nodeIndexTable](const GroupNodeDesc &node) {
-		auto it = nodeIndexTable.find(&node);
-		UTIL_ASSERT(it != nodeIndexTable.end());
-		dsOut->Write<uint32_t>(node.m_links.size());
-		for(auto &link : node.m_links)
-			link.Serialize(dsOut, nodeIndexTable);
-	};
 
-	std::function<void(const GroupNodeDesc &)> fWriteLinks = nullptr;
-	fWriteLinks = [&fWriteLinks, &fWriteNodeLinks](const GroupNodeDesc &node) {
-		if(node.IsGroupNode() == false)
-			return;
-		fWriteNodeLinks(node);
-		for(auto &child : node.m_nodes) {
-			if(child->IsGroupNode() == false)
-				continue;
-			fWriteLinks(static_cast<GroupNodeDesc &>(*child));
-		}
-	};
-	fWriteLinks(*this);*/
+	auto udmLinks = data.AddArray("links", m_links.size());
+	idx = 0;
+	for(auto &link : m_links) {
+		auto udmLink = udmLinks[idx++];
+		link.Serialize(udmLink);
+	}
 }
 void pragma::scenekit::GroupNodeDesc::Deserialize(udm::LinkedPropertyWrapper &data)
 {
 	DeserializeNodes(data);
 
-	//DeserializeLinks(data, rootNodeIndexTable);
+	std::unordered_map<std::string, const NodeDesc *> rootNodeIndexTable;
+	// Root node; Build index list
+	std::function<void(const NodeDesc &)> fBuildIndexTable = nullptr;
+	fBuildIndexTable = [&fBuildIndexTable, &rootNodeIndexTable](const NodeDesc &node) {
+		rootNodeIndexTable.insert(std::make_pair(util::uuid_to_string(node.GetUuid()), &node));
+		if(node.IsGroupNode() == false)
+			return;
+		auto &nodeGroup = static_cast<const GroupNodeDesc &>(node);
+		for(auto &child : nodeGroup.GetChildNodes())
+			fBuildIndexTable(*child);
+	};
+	fBuildIndexTable(*this);
+
+	DeserializeLinks(data, rootNodeIndexTable);
 }
 void pragma::scenekit::GroupNodeDesc::DeserializeNodes(udm::LinkedPropertyWrapper &data)
 {
@@ -892,63 +684,29 @@ void pragma::scenekit::GroupNodeDesc::DeserializeNodes(udm::LinkedPropertyWrappe
 		udmNode["groupNode"] >> isGroupNode;
 		auto node = isGroupNode ? GroupNodeDesc::Create(m_nodeManager, this) : NodeDesc::Create(this);
 		node->DeserializeNodes(udmNode);
-
 		m_nodes.push_back(node);
 	}
+}
+void pragma::scenekit::GroupNodeDesc::DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable)
+{
+	auto udmLinks = data["links"];
+	auto numLinks = udmLinks.GetSize();
+	m_links.resize(numLinks);
+	for (size_t i=0;i<numLinks;++i) {
+		auto udmLink = udmLinks[i];
+		auto &link = m_links[i];
+		link.Deserialize(*this, udmLink, nodeIndexTable);
+	}
 
-	std::unordered_map<std::string, const NodeDesc *> nodeUuidMap;
-	// Root node; Build index list
-	std::function<void(const NodeDesc &)> fBuildIndexTable = nullptr;
-	fBuildIndexTable = [&fBuildIndexTable, &nodeUuidMap](const NodeDesc &node) {
-		nodeUuidMap.insert(std::make_pair(util::uuid_to_string(node.GetUuid()), &node));
-		if(node.IsGroupNode() == false)
-			return;
-		auto &nodeGroup = static_cast<const GroupNodeDesc &>(node);
-		for(auto &child : nodeGroup.GetChildNodes())
-			fBuildIndexTable(*child);
-	};
-	fBuildIndexTable(*this);
-
+	auto udmNodes = data["nodes"];
+	auto numNodes = udmNodes.GetSize();
 	for(auto i = decltype(numNodes) {0u}; i < numNodes; ++i) {
 		auto udmNode = udmNodes[i];
-		auto udmLinks = udmNode["links"];
-		if (udmLinks) {
-			auto &node = m_nodes[i];
-			auto *groupNode = dynamic_cast<GroupNodeDesc *>(node.get());
-			if (groupNode) {
-				auto &links = groupNode->m_links;
-				auto n = udmLinks.GetSize();
-				links.resize(n);
-				for (size_t i=0;i<n;++i) {
-					auto udmLink = udmLinks[i];
-					auto &link = links[i];
-					link.Deserialize(*groupNode, udmLink, nodeUuidMap);
-				}
-			}
-		}
+		auto &node = m_nodes[i];
+		if (!node->IsGroupNode())
+			continue;
+		static_cast<GroupNodeDesc&>(*node).DeserializeLinks(udmNode, nodeIndexTable);
 	}
-}
-void pragma::scenekit::GroupNodeDesc::DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::vector<const NodeDesc *> &nodeIndexTable)
-{
-	/*auto fReadNodeLinks = [&dsIn, &nodeIndexTable](GroupNodeDesc &node) {
-		auto numLinks = dsIn->Read<uint32_t>();
-		node.m_links.resize(numLinks);
-		for(auto &link : node.m_links)
-			link.Deserialize(node, dsIn, nodeIndexTable);
-	};
-
-	std::function<void(GroupNodeDesc &)> fReadLinks = nullptr;
-	fReadLinks = [&fReadLinks, &fReadNodeLinks](GroupNodeDesc &node) {
-		if(node.IsGroupNode() == false)
-			return;
-		fReadNodeLinks(node);
-		for(auto &child : node.m_nodes) {
-			if(child->IsGroupNode() == false)
-				continue;
-			fReadLinks(static_cast<GroupNodeDesc &>(*child));
-		}
-	};
-	fReadLinks(*this);*/
 }
 void pragma::scenekit::GroupNodeDesc::Link(NodeDesc &fromNode, const std::string &fromSocket, NodeDesc &toNode, const std::string &toSocket) { Link(fromNode.GetOutputSocket(fromSocket), toNode.GetInputSocket(toSocket)); }
 void pragma::scenekit::GroupNodeDesc::Link(const Socket &fromSocket, const Socket &toSocket)
@@ -1048,6 +806,13 @@ enum class PassType : uint8_t {
 };
 void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 {
+	std::array<std::shared_ptr<pragma::scenekit::GroupNodeDesc>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
+	uint32_t flags = 0;
+	for(auto i = decltype(passes.size()) {0u}; i < passes.size(); ++i) {
+		if(passes.at(i))
+			flags |= 1 << i;
+	}
+
 	if (m_hairConfig) {
 		auto udmHair = data["hairConfig"];
 		udmHair["numSegments"] << m_hairConfig->numSegments;
@@ -1057,24 +822,24 @@ void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 		udmHair["defaultHairStrength"] << m_hairConfig->defaultHairStrength;
 		udmHair["randomHairLengthFactor"] << m_hairConfig->randomHairLengthFactor;
 		udmHair["curvature"] << m_hairConfig->curvature;
-		static_assert(sizeof(util::HairConfig) == 28, "Update this list when HairConfig struct changes!");
+		static_assert(sizeof(util::HairConfig) == 28, "Update these when changes to the hair config struct were made.");
 	}
 
 	if (m_subdivisionSettings) {
 		auto udmSubdiv = data["subdiv"];
-		udmSubdiv["maxLevel"] = m_subdivisionSettings->maxLevel;
-		udmSubdiv["maxEdgeScreenSize"] = m_subdivisionSettings->maxEdgeScreenSize;
-		static_assert(sizeof(SubdivisionSettings) == 8, "Update this list when SubdivisionSettings struct changes!");
+		udmSubdiv["maxLevel"] << m_subdivisionSettings->maxLevel;
+		udmSubdiv["maxEdgeScreenSize"] << m_subdivisionSettings->maxEdgeScreenSize;
+		static_assert(sizeof(SubdivisionSettings) == 8, "Update these when changes to the subdivision struct were made.");
 	}
 
-	auto udmPasses = data["passes"];
-	std::array<std::shared_ptr<pragma::scenekit::GroupNodeDesc>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
-	for (size_t i=0;i<passes.size();++i) {
-		auto &pass = passes[i];
+	data["flags"] << flags;
+
+	auto udmPasses = data.AddArray("passes", passes.size());
+	size_t idx = 0;
+	for(auto &pass : passes) {
+		auto udmPass = udmPasses[idx++];
 		if(pass == nullptr)
 			continue;
-		auto passName = magic_enum::enum_name(static_cast<PassType>(i));
-		auto udmPass = udmPasses[passName];
 		pass->Serialize(udmPass);
 	}
 }
@@ -1083,7 +848,7 @@ void pragma::scenekit::Shader::Deserialize(udm::LinkedPropertyWrapper &data, Nod
 	std::array<std::reference_wrapper<std::shared_ptr<pragma::scenekit::GroupNodeDesc>>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
 
 	auto udmHair = data["hairConfig"];
-	if(udmHair) {
+	if (udmHair) {
 		m_hairConfig = util::HairConfig {};
 		udmHair["numSegments"] >> m_hairConfig->numSegments;
 		udmHair["hairPerSquareMeter"] >> m_hairConfig->hairPerSquareMeter;
@@ -1092,75 +857,31 @@ void pragma::scenekit::Shader::Deserialize(udm::LinkedPropertyWrapper &data, Nod
 		udmHair["defaultHairStrength"] >> m_hairConfig->defaultHairStrength;
 		udmHair["randomHairLengthFactor"] >> m_hairConfig->randomHairLengthFactor;
 		udmHair["curvature"] >> m_hairConfig->curvature;
+		static_assert(sizeof(SubdivisionSettings) == 8, "Update these when changes to the subdivision struct were made.");
 	}
 	else
 		m_hairConfig = {};
 
 	auto udmSubdiv = data["subdiv"];
-	if(udmSubdiv) {
+	if (udmSubdiv) {
 		m_subdivisionSettings = SubdivisionSettings {};
 		udmSubdiv["maxLevel"] >> m_subdivisionSettings->maxLevel;
 		udmSubdiv["maxEdgeScreenSize"] >> m_subdivisionSettings->maxEdgeScreenSize;
+		static_assert(sizeof(SubdivisionSettings) == 8, "Update these when changes to the subdivision struct were made.");
 	}
 	else
 		m_subdivisionSettings = {};
+
+	uint32_t flags = 0;
+	data["flags"] >> flags;
 
 	auto udmPasses = data["passes"];
 	for(auto i = decltype(passes.size()) {0u}; i < passes.size(); ++i) {
-		auto passName = magic_enum::enum_name(static_cast<PassType>(i));
-		auto udmPass = udmPasses[passName];
-		if (!udmPass)
-			continue;
-		passes.at(i).get() = GroupNodeDesc::Create(nodeManager);
-		passes.at(i).get()->Deserialize(udmPass);
-	}
-}
-void pragma::scenekit::Shader::Serialize(DataStream &dsOut) const
-{
-	std::array<std::shared_ptr<pragma::scenekit::GroupNodeDesc>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
-	uint32_t flags = 0;
-	for(auto i = decltype(passes.size()) {0u}; i < passes.size(); ++i) {
-		if(passes.at(i))
-			flags |= 1 << i;
-	}
-
-	dsOut->Write<bool>(m_hairConfig.has_value());
-	if(m_hairConfig.has_value())
-		dsOut->Write(*m_hairConfig);
-
-	dsOut->Write<bool>(m_subdivisionSettings.has_value());
-	if(m_subdivisionSettings.has_value())
-		dsOut->Write(*m_subdivisionSettings);
-
-	dsOut->Write<uint32_t>(flags);
-	for(auto &pass : passes) {
-		if(pass == nullptr)
-			continue;
-		pass->Serialize(dsOut);
-	}
-}
-void pragma::scenekit::Shader::Deserialize(DataStream &dsIn, NodeManager &nodeManager)
-{
-	std::array<std::reference_wrapper<std::shared_ptr<pragma::scenekit::GroupNodeDesc>>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
-
-	auto hasHairConfig = dsIn->Read<bool>();
-	if(hasHairConfig)
-		m_hairConfig = dsIn->Read<util::HairConfig>();
-	else
-		m_hairConfig = {};
-
-	auto hasSubdivSettings = dsIn->Read<bool>();
-	if(hasSubdivSettings)
-		m_subdivisionSettings = dsIn->Read<SubdivisionSettings>();
-	else
-		m_subdivisionSettings = {};
-
-	auto flags = dsIn->Read<uint32_t>();
-	for(auto i = decltype(passes.size()) {0u}; i < passes.size(); ++i) {
+		auto udmPass = udmPasses[i];
 		if((flags & (1 << i)) == 0)
 			continue;
 		passes.at(i).get() = GroupNodeDesc::Create(nodeManager);
-		passes.at(i).get()->Deserialize(dsIn);
+		passes.at(i).get()->Deserialize(udmPass);
 	}
 }
 pragma::scenekit::Shader::Shader() {}

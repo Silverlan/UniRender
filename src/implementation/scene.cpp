@@ -48,28 +48,7 @@ import :model_cache;
 import :object;
 import :mesh;
 
-void pragma::scenekit::serialize_udm_property(DataStream &dsOut, const udm::Property &prop)
-{
-	std::stringstream ss;
-	ufile::OutStreamFile f {std::move(ss)};
-	prop.Write(f);
-	dsOut->Write<size_t>(f.GetSize());
-
-	std::vector<uint8_t> data;
-	data.resize(f.GetSize());
-	ss = f.MoveStream();
-	ss.seekg(0, std::ios_base::beg);
-	ss.read(reinterpret_cast<char *>(data.data()), data.size());
-	dsOut->Write(data.data(), data.size());
-}
-void pragma::scenekit::deserialize_udm_property(DataStream &dsIn, udm::Property &prop)
-{
-	auto size = dsIn->Read<size_t>();
-	ufile::VectorFile f {size};
-	dsIn->Read(f.GetData(), size);
-	prop.Read(f);
-}
-
+#pragma clang optimize off
 static std::shared_ptr<spdlog::logger> g_logger = nullptr;
 void pragma::scenekit::set_logger(const std::shared_ptr<spdlog::logger> &logger) { g_logger = logger; }
 const std::shared_ptr<spdlog::logger> &pragma::scenekit::get_logger() { return g_logger; }
@@ -289,8 +268,8 @@ std::optional<std::string> pragma::scenekit::Scene::GetAbsSkyPath(const std::str
 {
 	if(skyTex.empty())
 		return {};
-	std::string absPath = skyTex;
-	if(FileManager::ExistsSystem(absPath) == false && FileManager::FindAbsolutePath("materials/" + skyTex, absPath) == false)
+	std::string absPath = util::FilePath("materials", skyTex).GetString();
+	if (!filemanager::find_local_path(absPath, absPath))
 		return {};
 	return absPath;
 }
@@ -523,9 +502,9 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 	if(!m_sceneInfo.sky.empty()) {
 		auto absSky = GetAbsSkyPath(m_sceneInfo.sky);
 		if(absSky.has_value())
-			udmSky["absTexture"] = *absSky;
+			udmSky["texture"] = *absSky;
 		else
-			udmSky["relTexture"] = m_sceneInfo.sky;
+			udmSky["texture"] = m_sceneInfo.sky;
 	}
 	udmSky["angles"] = m_sceneInfo.skyAngles;
 	udmSky["strength"] = m_sceneInfo.skyStrength;
@@ -554,7 +533,7 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 	size_t idx = 0;
 	for(auto &mdlCache : m_mdlCaches) {
 		auto udmModelCache = udmModelCaches[idx++];
-		// Try to create a reasonable has to identify the cache
+		// Try to create a reasonable hash to identify the cache
 		auto &chunks = mdlCache->GetChunks();
 		size_t hash = 0;
 		if(mdlCache->IsUnique()) {
@@ -577,27 +556,19 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 				}
 			}
 		}
-		/*auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." +std::string {PRTMC_EXTENSION_BINARY}).GetString();
+		auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." +std::string {PRTMC_EXTENSION_BINARY}).GetString();
 		if(filemanager::exists(mdlCachePath) == false) {
 			filemanager::create_path(ufile::get_path_from_filename(mdlCachePath));
 			auto f = filemanager::open_file(mdlCachePath, filemanager::FileMode::Write | filemanager::FileMode::Binary);
 			if (f) {
 				auto data = udm::Data::Create(PRTMC_IDENTIFIER, PRTMC_VERSION);
 				auto assetData = data->GetAssetData();
-				mdlCache->Serialize(assetData);
+
+				auto udmData = assetData.GetData();
+				mdlCache->Serialize(udmData);
 
 				fsys::File fptr {f};
 				data->Save(fptr);
-			}
-		}*/
-		auto mdlCachePath = modelCachePath + std::to_string(hash) + ".prtc";
-		if(FileManager::Exists(mdlCachePath) == false) {
-			DataStream mdlCacheStream {};
-			mdlCacheStream->SetOffset(0);
-			mdlCache->Serialize(mdlCacheStream);
-			auto f = FileManager::OpenFile<VFilePtrReal>(mdlCachePath.c_str(), "wb");
-			if(f) {
-				f->Write(mdlCacheStream->GetData(), mdlCacheStream->GetInternalSize());
 			}
 		}
 		udmModelCache["hash"] << hash;
@@ -640,16 +611,7 @@ bool pragma::scenekit::Scene::ReadSerializationHeader(udm::AssetDataArg data, Re
 		auto udmScene = udm["sceneInfo"];
 		auto udmSky = udmScene["sky"];
 
-		auto absTex = udmSky["absTexture"];
-		auto relTex = udmSky["relTexture"];
-		if(absTex)
-			absTex(sceneInfo.sky);
-		else if(relTex) {
-			std::string skyTex;
-			relTex(skyTex);
-			sceneInfo.sky = ToAbsolutePath(skyTex);
-		}
-
+		udmSky["texture"] >> sceneInfo.sky;
 		udmSky["angles"](sceneInfo.skyAngles);
 		udmSky["strength"](sceneInfo.skyStrength);
 		udmSky["transparent"](sceneInfo.transparentSky);
@@ -694,28 +656,18 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 		auto baseMdlCachePath = modelCachePath + std::to_string(hash);
 		auto mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_BINARY};
 		auto f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
-		/*if (!f) {
-			mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_ASCII};
-			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
-		}*/
 		if (!f) {
-			mdlCachePath = baseMdlCachePath + ".prtc";
+			mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_ASCII};
 			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
 		}
 		if(f) {
-			DataStream dsMdlCache {};
-			dsMdlCache->Resize(f->GetSize() - f->Tell());
-			f->Read(dsMdlCache->GetData(), f->GetSize() - f->Tell());
-			auto mdlCache = ModelCache::Create(dsMdlCache, GetShaderNodeManager());
-			if(mdlCache)
-				m_mdlCaches.push_back(mdlCache);
-			/*auto fptr = std::make_unique<fsys::File>(f);
+			auto fptr = std::make_unique<fsys::File>(f);
 			auto udmData = udm::Data::Load(std::move(fptr));
 			auto assetData = udmData->GetAssetData();
-
-			auto mdlCache = ModelCache::Create(assetData, GetShaderNodeManager());
+			auto udmCacheData = assetData.GetData();
+			auto mdlCache = ModelCache::Create(udmCacheData, GetShaderNodeManager());
 			if(mdlCache)
-				m_mdlCaches.push_back(mdlCache);*/
+				m_mdlCaches.push_back(mdlCache);
 		}
 	}
 
@@ -724,10 +676,8 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 	for (auto &udmLight : udmLights)
 		m_lights.push_back(Light::Create(udmLight));
 
-	{
-		auto udmCamera = udm["camera"];
-		m_camera->Deserialize(udmCamera);
-	}
+	auto udmCamera = udm["camera"];
+	m_camera->Deserialize(udmCamera);
 
 	udm["bakeTargetName"] >> m_bakeTargetName;
 	return true;

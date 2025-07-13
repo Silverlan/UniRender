@@ -10,6 +10,7 @@ module;
 #include <sharedutils/util_weak_handle.hpp>
 #include <sharedutils/util.h>
 #include <sharedutils/util_hair.hpp>
+#include <udm.hpp>
 
 export module pragma.scenekit:mesh;
 
@@ -33,24 +34,22 @@ export namespace pragma::scenekit {
 		};
 		enum class Flags : uint8_t { None = 0u, HasAlphas = 1u, HasWrinkles = HasAlphas << 1u };
 		struct DLLRTUTIL SerializationHeader {
-			~SerializationHeader();
 			std::string name;
 			Flags flags;
 			uint64_t numVerts;
 			uint64_t numTris;
-			void *udmProperty;
 		};
 		using Smooth = uint8_t; // Boolean value
 
 		static PMesh Create(const std::string &name, uint64_t numVerts, uint64_t numTris, Flags flags = Flags::None);
-		static PMesh Create(DataStream &dsIn, const std::function<PShader(uint32_t)> &fGetShader);
-		static PMesh Create(DataStream &dsIn, const ShaderCache &cache);
+		static PMesh Create(udm::LinkedPropertyWrapper &data, const std::function<PShader(uint32_t)> &fGetShader);
+		static PMesh Create(udm::LinkedPropertyWrapper &data, const ShaderCache &cache);
 		util::WeakHandle<Mesh> GetHandle();
 
-		void Serialize(DataStream &dsOut, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const;
-		void Serialize(DataStream &dsOut, const std::unordered_map<const Shader *, size_t> shaderToIndexTable) const;
-		void Deserialize(DataStream &dsIn, const std::function<PShader(uint32_t)> &fGetShader, SerializationHeader &header);
-		static void ReadSerializationHeader(DataStream &dsIn, SerializationHeader &outHeader);
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const;
+		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const Shader *, size_t> shaderToIndexTable) const;
+		void Deserialize(udm::LinkedPropertyWrapper &data, const std::function<PShader(uint32_t)> &fGetShader, SerializationHeader &header);
+		static void ReadSerializationHeader(udm::LinkedPropertyWrapper &data, SerializationHeader &outHeader);
 
 		void Merge(const Mesh &other);
 

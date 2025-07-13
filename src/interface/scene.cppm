@@ -38,9 +38,6 @@ export namespace pragma::scenekit {
 	using PMesh = std::shared_ptr<Mesh>;
 	struct Socket;
 
-	DLLRTUTIL void serialize_udm_property(DataStream &dsOut, const udm::Property &prop);
-	DLLRTUTIL void deserialize_udm_property(DataStream &dsIn, udm::Property &prop);
-
 	DLLRTUTIL void set_logger(const std::shared_ptr<spdlog::logger> &logger);
 	DLLRTUTIL const std::shared_ptr<spdlog::logger> &get_logger();
 	DLLRTUTIL bool should_log();

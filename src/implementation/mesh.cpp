@@ -17,8 +17,6 @@ import :scene;
 import :data_value;
 import :shader;
 
-pragma::scenekit::Mesh::SerializationHeader::~SerializationHeader() { delete static_cast<udm::PProperty *>(udmProperty); }
-
 pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(const std::string &name, uint64_t numVerts, uint64_t numTris, Flags flags)
 {
 	auto meshWrapper = PMesh {new Mesh {numVerts, numTris, flags}};
@@ -49,19 +47,19 @@ pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(const std::string &name, 
 	return meshWrapper;
 }
 
-pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(DataStream &dsIn, const std::function<PShader(uint32_t)> &fGetShader)
+pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(udm::LinkedPropertyWrapper &data, const std::function<PShader(uint32_t)> &fGetShader)
 {
 	SerializationHeader header {};
-	ReadSerializationHeader(dsIn, header);
+	ReadSerializationHeader(data, header);
 	auto mesh = Create(header.name, header.numVerts, header.numTris, header.flags);
-	mesh->Deserialize(dsIn, fGetShader, header);
+	mesh->Deserialize(data, fGetShader, header);
 	return mesh;
 }
 
-pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(DataStream &dsIn, const ShaderCache &cache)
+pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(udm::LinkedPropertyWrapper &data, const ShaderCache &cache)
 {
 	auto &shaders = cache.GetShaders();
-	return Create(dsIn, [&shaders](uint32_t idx) -> PShader { return (idx < shaders.size()) ? shaders.at(idx) : nullptr; });
+	return Create(data, [&shaders](uint32_t idx) -> PShader { return (idx < shaders.size()) ? shaders.at(idx) : nullptr; });
 }
 
 pragma::scenekit::Mesh::Mesh(uint64_t numVerts, uint64_t numTris, Flags flags) : m_numVerts {numVerts}, m_numTris {numTris}, m_flags {flags}
@@ -81,18 +79,14 @@ util::WeakHandle<pragma::scenekit::Mesh> pragma::scenekit::Mesh::GetHandle() { r
 
 enum class SerializationFlags : uint8_t { None = 0u, UseAlphas = 1u, UseSubdivFaces = UseAlphas << 1u };
 REGISTER_BASIC_BITWISE_OPERATORS(SerializationFlags)
-void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const
+void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const
 {
-	auto prop = udm::Property::Create<udm::Element>();
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
-
 	auto numVerts = umath::min(m_numVerts, m_verts.size());
 	auto numTris = umath::min(m_numTris, m_triangles.size() / 3);
-	udm["name"] = GetName();
-	udm["flags"] = udm::flags_to_string(m_flags);
-	udm["numVerts"] = numVerts;
-	udm["numTris"] = numTris;
+	data["name"] = GetName();
+	data["flags"] = udm::flags_to_string(m_flags);
+	data["numVerts"] = numVerts;
+	data["numTris"] = numTris;
 
 	auto flags = SerializationFlags::None;
 	if(m_alphas)
@@ -100,13 +94,13 @@ void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::function<st
 	if(m_numSubdFaces > 0)
 		flags |= SerializationFlags::UseSubdivFaces;
 
-	udm["serializationFlags"] = udm::flags_to_string(flags);
-	udm.AddArray<Vector3>("verts", m_verts, udm::ArrayType::Compressed);
-	udm.AddArray<Vector2>("perVertexUvs", m_perVertexUvs, udm::ArrayType::Compressed);
-	udm.AddArray<Vector4>("perVertexTangents", m_perVertexTangents, udm::ArrayType::Compressed);
-	udm.AddArray<float>("perVertexTangentSigns", m_perVertexTangentSigns, udm::ArrayType::Compressed);
+	data["serializationFlags"] = udm::flags_to_string(flags);
+	data.AddArray<Vector3>("verts", m_verts, udm::ArrayType::Compressed);
+	data.AddArray<Vector2>("perVertexUvs", m_perVertexUvs, udm::ArrayType::Compressed);
+	data.AddArray<Vector4>("perVertexTangents", m_perVertexTangents, udm::ArrayType::Compressed);
+	data.AddArray<float>("perVertexTangentSigns", m_perVertexTangentSigns, udm::ArrayType::Compressed);
 	if(umath::is_flag_set(flags, SerializationFlags::UseAlphas))
-		udm.AddArray<float>("perVertexAlphas", m_perVertexAlphas, udm::ArrayType::Compressed);
+		data.AddArray<float>("perVertexAlphas", m_perVertexAlphas, udm::ArrayType::Compressed);
 
 	/*if(umath::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
 	{
@@ -128,21 +122,21 @@ void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::function<st
 	*/
 	// Validate();
 
-	udm.AddArray<int32_t>("tris", m_triangles, udm::ArrayType::Compressed);
-	udm.AddArray<int32_t>("shaders", m_shader, udm::ArrayType::Compressed);
-	udm.AddArray<uint8_t>("smooth", m_smooth, udm::ArrayType::Compressed);
+	data.AddArray<int32_t>("tris", m_triangles, udm::ArrayType::Compressed);
+	data.AddArray<int32_t>("shaders", m_shader, udm::ArrayType::Compressed);
+	data.AddArray<uint8_t>("smooth", m_smooth, udm::ArrayType::Compressed);
 
 	//if(umath::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
 	//	dsOut->Write(reinterpret_cast<const uint8_t*>(m_mesh.get_triangle_patch().data()),numTris *sizeof(m_mesh.get_triangle_patch()[0]));
 
-	udm.AddArray<Vector3>("vertexNormals", m_vertexNormals, udm::ArrayType::Compressed);
+	data.AddArray<Vector3>("vertexNormals", m_vertexNormals, udm::ArrayType::Compressed);
 
-	udm.AddArray<Vector2>("uvs", m_uvs, udm::ArrayType::Compressed);
-	udm.AddArray<Vector3>("uvTangents", m_uvTangents, udm::ArrayType::Compressed);
-	udm.AddArray<float>("uvTangentSigns", m_uvTangentSigns, udm::ArrayType::Compressed);
+	data.AddArray<Vector2>("uvs", m_uvs, udm::ArrayType::Compressed);
+	data.AddArray<Vector3>("uvTangents", m_uvTangents, udm::ArrayType::Compressed);
+	data.AddArray<float>("uvTangentSigns", m_uvTangentSigns, udm::ArrayType::Compressed);
 
 	if(umath::is_flag_set(flags, SerializationFlags::UseAlphas))
-		udm.AddArray<float>("alphas", *m_alphas, udm::ArrayType::Compressed);
+		data.AddArray<float>("alphas", *m_alphas, udm::ArrayType::Compressed);
 
 	std::vector<uint32_t> subMeshShaders;
 	subMeshShaders.reserve(m_subMeshShaders.size());
@@ -151,11 +145,11 @@ void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::function<st
 		assert(idx.has_value());
 		subMeshShaders.push_back(*idx);
 	}
-	udm.AddArray<uint32_t>("subMeshShaders", subMeshShaders, udm::ArrayType::Compressed);
+	data.AddArray<uint32_t>("subMeshShaders", subMeshShaders, udm::ArrayType::Compressed);
 
-	udm.AddArray<Vector2>("lightmapUvs", m_lightmapUvs, udm::ArrayType::Compressed);
+	data.AddArray<Vector2>("lightmapUvs", m_lightmapUvs, udm::ArrayType::Compressed);
 
-	auto udmHairDs = udm.AddArray("hairStrandDataSets", m_hairStrandDataSets.size(), udm::Type::Element);
+	auto udmHairDs = data.AddArray("hairStrandDataSets", m_hairStrandDataSets.size(), udm::Type::Element);
 	uint32_t idx = 0;
 	for(auto &set : m_hairStrandDataSets) {
 		auto udm = udmHairDs[idx++];
@@ -167,64 +161,51 @@ void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::function<st
 		udmStrandData.AddArray<Vector2>("uvs", set.strandData.uvs, udm::ArrayType::Compressed);
 		udmStrandData.AddArray<float>("thicknessData", set.strandData.thicknessData, udm::ArrayType::Compressed);
 	}
-
-	serialize_udm_property(dsOut, *prop);
 }
-void pragma::scenekit::Mesh::Serialize(DataStream &dsOut, const std::unordered_map<const Shader *, size_t> shaderToIndexTable) const
+void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const Shader *, size_t> shaderToIndexTable) const
 {
-	Serialize(dsOut, [&shaderToIndexTable](const Shader &shader) -> std::optional<uint32_t> {
+	Serialize(data, [&shaderToIndexTable](const Shader &shader) -> std::optional<uint32_t> {
 		auto it = shaderToIndexTable.find(&shader);
 		return (it != shaderToIndexTable.end()) ? it->second : std::optional<uint32_t> {};
 	});
 }
-void pragma::scenekit::Mesh::ReadSerializationHeader(DataStream &dsIn, SerializationHeader &outHeader)
+void pragma::scenekit::Mesh::ReadSerializationHeader(udm::LinkedPropertyWrapper &data, SerializationHeader &outHeader)
 {
-	auto prop = udm::Property::Create<udm::Element>();
-	deserialize_udm_property(dsIn, *prop);
-
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
-
-	udm["name"](outHeader.name);
-	udm["numVerts"](outHeader.numVerts);
-	udm["numTris"](outHeader.numTris);
-	udm["flags"] = udm::flags_to_string(outHeader.flags);
-	outHeader.udmProperty = new udm::PProperty {prop};
+	data["name"](outHeader.name);
+	data["numVerts"](outHeader.numVerts);
+	data["numTris"](outHeader.numTris);
+	data["flags"] = udm::flags_to_string(outHeader.flags);
 }
-void pragma::scenekit::Mesh::Deserialize(DataStream &dsIn, const std::function<PShader(uint32_t)> &fGetShader, SerializationHeader &header)
+void pragma::scenekit::Mesh::Deserialize(udm::LinkedPropertyWrapper &data, const std::function<PShader(uint32_t)> &fGetShader, SerializationHeader &header)
 {
-	auto &prop = *static_cast<udm::PProperty *>(header.udmProperty);
-	auto &udmEl = prop->GetValue<udm::Element>();
-	udm::LinkedPropertyWrapper udm {*prop};
-
-	m_flags = udm::string_to_flags<decltype(m_flags)>(udm["flags"], Flags::None);
+	m_flags = udm::string_to_flags<decltype(m_flags)>(data["flags"], Flags::None);
 	uint64_t numVerts = 0;
 	uint64_t numTris = 0;
-	udm["numVerts"](numVerts);
-	udm["numTris"](numTris);
+	data["numVerts"](numVerts);
+	data["numTris"](numTris);
 
 	auto flags = SerializationFlags::None;
-	flags = udm::string_to_flags<decltype(flags)>(udm["serializationFlags"], SerializationFlags::None);
+	flags = udm::string_to_flags<decltype(flags)>(data["serializationFlags"], SerializationFlags::None);
 
-	udm["verts"](m_verts);
-	udm["perVertexUvs"](m_perVertexUvs);
-	udm["perVertexTangents"](m_perVertexTangents);
-	udm["perVertexTangentSigns"](m_perVertexTangentSigns);
-	udm["perVertexAlphas"](m_perVertexAlphas);
-	udm["tris"](m_triangles);
-	udm["shaders"](m_shader);
-	udm["smooth"](m_smooth);
-	udm["vertexNormals"](m_vertexNormals);
-	udm["uvs"](m_uvs);
-	udm["uvTangents"](m_uvTangents);
-	udm["uvTangentSigns"](m_uvTangentSigns);
-	if(udm["alphas"]) {
+	data["verts"](m_verts);
+	data["perVertexUvs"](m_perVertexUvs);
+	data["perVertexTangents"](m_perVertexTangents);
+	data["perVertexTangentSigns"](m_perVertexTangentSigns);
+	data["perVertexAlphas"](m_perVertexAlphas);
+	data["tris"](m_triangles);
+	data["shaders"](m_shader);
+	data["smooth"](m_smooth);
+	data["vertexNormals"](m_vertexNormals);
+	data["uvs"](m_uvs);
+	data["uvTangents"](m_uvTangents);
+	data["uvTangentSigns"](m_uvTangentSigns);
+	if(data["alphas"]) {
 		m_alphas = pragma::scenekit::STFloatArray {};
-		udm["alphas"](*m_alphas);
+		data["alphas"](*m_alphas);
 	}
 
 	std::vector<uint32_t> subMeshShaders;
-	udm["subMeshShaders"](subMeshShaders);
+	data["subMeshShaders"](subMeshShaders);
 	m_subMeshShaders.resize(subMeshShaders.size());
 	for(auto i = decltype(subMeshShaders.size()) {0u}; i < subMeshShaders.size(); ++i) {
 		auto shaderIdx = subMeshShaders[i];
@@ -233,9 +214,9 @@ void pragma::scenekit::Mesh::Deserialize(DataStream &dsIn, const std::function<P
 		m_subMeshShaders.at(i) = shader;
 	}
 
-	udm["lightmapUvs"](m_lightmapUvs);
+	data["lightmapUvs"](m_lightmapUvs);
 
-	auto udmHairDs = udm["hairStrandDataSets"];
+	auto udmHairDs = data["hairStrandDataSets"];
 	if(udmHairDs) {
 		m_hairStrandDataSets.reserve(udmHairDs.GetSize());
 		for(auto &udm : udmHairDs) {
