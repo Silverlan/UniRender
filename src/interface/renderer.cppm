@@ -94,10 +94,7 @@ export namespace pragma::scenekit {
 
 			None = std::numeric_limits<uint8_t>::max()
 		};
-		enum class Feature : uint32_t {
-			None = 0,
-			OptiXAvailable = 1
-		};
+		enum class Feature : uint32_t { None = 0, OptiXAvailable = 1 };
 		static std::shared_ptr<Renderer> Create(const pragma::scenekit::Scene &scene, const std::string &rendererIdentifier, std::string &outErr, Flags flags = Flags::None);
 		static bool UnloadRendererLibrary(const std::string &rendererIdentifier);
 		static void Close();

@@ -218,23 +218,19 @@ pragma::scenekit::Socket pragma::scenekit::Socket::ApplyComparisonOperator(const
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator<(const Socket &socket) const
 {
-	return ApplyComparisonOperator(
-	  socket, [](float a, float b) -> bool { return a < b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b, nodes::math::MathType::LessThan); });
+	return ApplyComparisonOperator(socket, [](float a, float b) -> bool { return a < b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b, nodes::math::MathType::LessThan); });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator<=(const Socket &socket) const
 {
-	return ApplyComparisonOperator(
-	  socket, [](float a, float b) -> bool { return a <= b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b + COMPARISON_EPSILON, nodes::math::MathType::LessThan); });
+	return ApplyComparisonOperator(socket, [](float a, float b) -> bool { return a <= b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b + COMPARISON_EPSILON, nodes::math::MathType::LessThan); });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator>(const Socket &socket) const
 {
-	return ApplyComparisonOperator(
-	  socket, [](float a, float b) -> bool { return a > b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b, nodes::math::MathType::GreaterThan); });
+	return ApplyComparisonOperator(socket, [](float a, float b) -> bool { return a > b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b, nodes::math::MathType::GreaterThan); });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator>=(const Socket &socket) const
 {
-	return ApplyComparisonOperator(
-	  socket, [](float a, float b) -> bool { return a >= b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b - COMPARISON_EPSILON, nodes::math::MathType::GreaterThan); });
+	return ApplyComparisonOperator(socket, [](float a, float b) -> bool { return a >= b; }, [](GroupNodeDesc &node, const Socket &a, const Socket &b) -> Socket { return node.AddMathNode(a, b - COMPARISON_EPSILON, nodes::math::MathType::GreaterThan); });
 }
 
 bool pragma::scenekit::Socket::operator==(const Socket &other) const
@@ -426,15 +422,15 @@ void pragma::scenekit::Socket::Deserialize(GroupNodeDesc &parentGroupNode, udm::
 	data["valueType"] >> type;
 
 	switch(type) {
-		case ValueType::Invalid:
-			return;
-		case ValueType::ConreteValue:
+	case ValueType::Invalid:
+		return;
+	case ValueType::ConreteValue:
 		{
 			auto udmData = data["value"];
 			m_value = DataValue::Deserialize(udmData);
 			break;
 		}
-		case ValueType::Reference:
+	case ValueType::Reference:
 		{
 			std::string uuid;
 			data["nodeUuid"] >> uuid;

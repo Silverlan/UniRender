@@ -96,21 +96,23 @@ std::unordered_map<const pragma::scenekit::Mesh *, size_t> pragma::scenekit::Mod
 	return meshToIndex;
 }
 
-static std::string toHexString(util::MurmurHash3 const& h) {
+static std::string toHexString(util::MurmurHash3 const &h)
+{
 	std::ostringstream oss;
 	oss << std::hex << std::setfill('0');
-	for (uint8_t byte : h)
+	for(uint8_t byte : h)
 		oss << std::setw(2) << static_cast<int>(byte);
-	return oss.str();  // 32 chars: two hex digits per byte
+	return oss.str(); // 32 chars: two hex digits per byte
 }
 
-static util::MurmurHash3 fromHexString(std::string const& hex) {
+static util::MurmurHash3 fromHexString(std::string const &hex)
+{
 	util::MurmurHash3 h;
-	if (hex.size() != h.size()*2)
-		throw std::runtime_error{"bad hex length"};
-	for (size_t i = 0; i < h.size(); ++i) {
+	if(hex.size() != h.size() * 2)
+		throw std::runtime_error {"bad hex length"};
+	for(size_t i = 0; i < h.size(); ++i) {
 		unsigned int byte;
-		std::istringstream(hex.substr(2*i, 2)) >> std::hex >> byte;
+		std::istringstream(hex.substr(2 * i, 2)) >> std::hex >> byte;
 		h[i] = static_cast<uint8_t>(byte);
 	}
 	return h;

@@ -269,7 +269,7 @@ std::optional<std::string> pragma::scenekit::Scene::GetAbsSkyPath(const std::str
 	if(skyTex.empty())
 		return {};
 	std::string absPath = util::FilePath("materials", skyTex).GetString();
-	if (!filemanager::find_local_path(absPath, absPath))
+	if(!filemanager::find_local_path(absPath, absPath))
 		return {};
 	return absPath;
 }
@@ -485,7 +485,8 @@ static bool g_verbose = false;
 void pragma::scenekit::Scene::SetVerbose(bool verbose) { g_verbose = verbose; }
 bool pragma::scenekit::Scene::IsVerbose() { return g_verbose; }
 
-void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string &rootDir, const SerializationData &serializationData) const {
+void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string &rootDir, const SerializationData &serializationData) const
+{
 	auto modelCachePath = util::DirPath(rootDir, "cache").GetString();
 	filemanager::create_path(modelCachePath);
 
@@ -556,11 +557,11 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 				}
 			}
 		}
-		auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." +std::string {PRTMC_EXTENSION_BINARY}).GetString();
+		auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." + std::string {PRTMC_EXTENSION_BINARY}).GetString();
 		if(filemanager::exists(mdlCachePath) == false) {
 			filemanager::create_path(ufile::get_path_from_filename(mdlCachePath));
 			auto f = filemanager::open_file(mdlCachePath, filemanager::FileMode::Write | filemanager::FileMode::Binary);
-			if (f) {
+			if(f) {
 				auto data = udm::Data::Create(PRTMC_IDENTIFIER, PRTMC_VERSION);
 				auto assetData = data->GetAssetData();
 
@@ -654,10 +655,10 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 		size_t hash = 0;
 		udmCache["hash"] >> hash;
 		auto baseMdlCachePath = modelCachePath + std::to_string(hash);
-		auto mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_BINARY};
+		auto mdlCachePath = baseMdlCachePath + "." + std::string {PRTMC_EXTENSION_BINARY};
 		auto f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
-		if (!f) {
-			mdlCachePath = baseMdlCachePath + "." +std::string{PRTMC_EXTENSION_ASCII};
+		if(!f) {
+			mdlCachePath = baseMdlCachePath + "." + std::string {PRTMC_EXTENSION_ASCII};
 			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
 		}
 		if(f) {
@@ -673,7 +674,7 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 
 	auto udmLights = udm["lights"];
 	m_lights.reserve(udmLights.GetSize());
-	for (auto &udmLight : udmLights)
+	for(auto &udmLight : udmLights)
 		m_lights.push_back(Light::Create(udmLight));
 
 	auto udmCamera = udm["camera"];

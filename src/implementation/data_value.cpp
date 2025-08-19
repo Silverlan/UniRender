@@ -133,7 +133,7 @@ pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(DataStream 
 void pragma::scenekit::DataValue::Serialize(udm::LinkedPropertyWrapper &data) const
 {
 	data["type"] << type;
-	if (value == nullptr) {
+	if(value == nullptr) {
 		data["value"] << udm::Nil {};
 		return;
 	}
@@ -142,7 +142,7 @@ void pragma::scenekit::DataValue::Serialize(udm::LinkedPropertyWrapper &data) co
 		data["value"] << *static_cast<STBool *>(value.get());
 		break;
 	case SocketType::Float:
-		data["value"] <<*static_cast<STFloat *>(value.get());
+		data["value"] << *static_cast<STFloat *>(value.get());
 		break;
 	case SocketType::Int:
 		data["value"] << *static_cast<STInt *>(value.get());
@@ -201,12 +201,12 @@ pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(udm::Linked
 	auto loadVal = [&data, type]<typename T, SocketType SOCKET_TYPE>() {
 		if constexpr(std::is_same_v<T, glm::mat4x3>) {
 			udm::Mat3x4 m;
-			if (data["value"] >> m)
+			if(data["value"] >> m)
 				return DataValue::Create<T, SOCKET_TYPE>(glm::transpose(m));
 		}
 		else {
 			T val;
-			if (data["value"] >> val)
+			if(data["value"] >> val)
 				return DataValue::Create<T, SOCKET_TYPE>(val);
 		}
 		return DataValue {type, nullptr};
@@ -215,27 +215,27 @@ pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(udm::Linked
 	case SocketType::Bool:
 		return loadVal.template operator()<STBool, SocketType::Bool>();
 	case SocketType::Float:
-			return loadVal.template operator()<STFloat, SocketType::Float>();
+		return loadVal.template operator()<STFloat, SocketType::Float>();
 	case SocketType::Int:
-			return loadVal.template operator()<STInt, SocketType::Int>();
+		return loadVal.template operator()<STInt, SocketType::Int>();
 	case SocketType::UInt:
-			return loadVal.template operator()<STUInt, SocketType::UInt>();
+		return loadVal.template operator()<STUInt, SocketType::UInt>();
 	case SocketType::Color:
-			return loadVal.template operator()<STColor, SocketType::Color>();
+		return loadVal.template operator()<STColor, SocketType::Color>();
 	case SocketType::Vector:
-			return loadVal.template operator()<STVector, SocketType::Vector>();
+		return loadVal.template operator()<STVector, SocketType::Vector>();
 	case SocketType::Point:
-			return loadVal.template operator()<STPoint, SocketType::Point>();
+		return loadVal.template operator()<STPoint, SocketType::Point>();
 	case SocketType::Normal:
-			return loadVal.template operator()<STNormal, SocketType::Normal>();
+		return loadVal.template operator()<STNormal, SocketType::Normal>();
 	case SocketType::Point2:
-			return loadVal.template operator()<STPoint2, SocketType::Point2>();
+		return loadVal.template operator()<STPoint2, SocketType::Point2>();
 	case SocketType::Enum:
-			return loadVal.template operator()<STEnum, SocketType::Enum>();
+		return loadVal.template operator()<STEnum, SocketType::Enum>();
 	case SocketType::Transform:
-			return loadVal.template operator()<STTransform, SocketType::Transform>();
+		return loadVal.template operator()<STTransform, SocketType::Transform>();
 	case SocketType::String:
-			return loadVal.template operator()<STString, SocketType::String>();
+		return loadVal.template operator()<STString, SocketType::String>();
 	case SocketType::FloatArray:
 		{
 			auto udmVal = data["value"];

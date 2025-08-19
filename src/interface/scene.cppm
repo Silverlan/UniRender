@@ -51,7 +51,7 @@ export namespace pragma::scenekit {
 	class TileManager;
 	enum class ColorTransform : uint8_t;
 	class DLLRTUTIL Scene : public std::enable_shared_from_this<Scene> {
-	public:
+	  public:
 		static constexpr udm::Version PRT_VERSION = 7;
 		static constexpr auto PRT_IDENTIFIER = "RTD";
 		static constexpr auto PRT_EXTENSION_BINARY = "prt_b";

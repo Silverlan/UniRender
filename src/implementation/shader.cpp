@@ -631,10 +631,7 @@ pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::SeparateRGB(const S
 	Link(rgb, node.GetInputSocket(nodes::separate_rgb::IN_COLOR));
 	return node;
 }
-void pragma::scenekit::GroupNodeDesc::Serialize(udm::LinkedPropertyWrapper &data)
-{
-	SerializeNodes(data);
-}
+void pragma::scenekit::GroupNodeDesc::Serialize(udm::LinkedPropertyWrapper &data) { SerializeNodes(data); }
 void pragma::scenekit::GroupNodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data) const
 {
 	NodeDesc::SerializeNodes(data);
@@ -692,7 +689,7 @@ void pragma::scenekit::GroupNodeDesc::DeserializeLinks(udm::LinkedPropertyWrappe
 	auto udmLinks = data["links"];
 	auto numLinks = udmLinks.GetSize();
 	m_links.resize(numLinks);
-	for (size_t i=0;i<numLinks;++i) {
+	for(size_t i = 0; i < numLinks; ++i) {
 		auto udmLink = udmLinks[i];
 		auto &link = m_links[i];
 		link.Deserialize(*this, udmLink, nodeIndexTable);
@@ -703,9 +700,9 @@ void pragma::scenekit::GroupNodeDesc::DeserializeLinks(udm::LinkedPropertyWrappe
 	for(auto i = decltype(numNodes) {0u}; i < numNodes; ++i) {
 		auto udmNode = udmNodes[i];
 		auto &node = m_nodes[i];
-		if (!node->IsGroupNode())
+		if(!node->IsGroupNode())
 			continue;
-		static_cast<GroupNodeDesc&>(*node).DeserializeLinks(udmNode, nodeIndexTable);
+		static_cast<GroupNodeDesc &>(*node).DeserializeLinks(udmNode, nodeIndexTable);
 	}
 }
 void pragma::scenekit::GroupNodeDesc::Link(NodeDesc &fromNode, const std::string &fromSocket, NodeDesc &toNode, const std::string &toSocket) { Link(fromNode.GetOutputSocket(fromSocket), toNode.GetInputSocket(toSocket)); }
@@ -813,7 +810,7 @@ void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 			flags |= 1 << i;
 	}
 
-	if (m_hairConfig) {
+	if(m_hairConfig) {
 		auto udmHair = data["hairConfig"];
 		udmHair["numSegments"] << m_hairConfig->numSegments;
 		udmHair["hairPerSquareMeter"] << m_hairConfig->hairPerSquareMeter;
@@ -825,7 +822,7 @@ void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 		static_assert(sizeof(util::HairConfig) == 28, "Update these when changes to the hair config struct were made.");
 	}
 
-	if (m_subdivisionSettings) {
+	if(m_subdivisionSettings) {
 		auto udmSubdiv = data["subdiv"];
 		udmSubdiv["maxLevel"] << m_subdivisionSettings->maxLevel;
 		udmSubdiv["maxEdgeScreenSize"] << m_subdivisionSettings->maxEdgeScreenSize;
@@ -848,7 +845,7 @@ void pragma::scenekit::Shader::Deserialize(udm::LinkedPropertyWrapper &data, Nod
 	std::array<std::reference_wrapper<std::shared_ptr<pragma::scenekit::GroupNodeDesc>>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
 
 	auto udmHair = data["hairConfig"];
-	if (udmHair) {
+	if(udmHair) {
 		m_hairConfig = util::HairConfig {};
 		udmHair["numSegments"] >> m_hairConfig->numSegments;
 		udmHair["hairPerSquareMeter"] >> m_hairConfig->hairPerSquareMeter;
@@ -863,7 +860,7 @@ void pragma::scenekit::Shader::Deserialize(udm::LinkedPropertyWrapper &data, Nod
 		m_hairConfig = {};
 
 	auto udmSubdiv = data["subdiv"];
-	if (udmSubdiv) {
+	if(udmSubdiv) {
 		m_subdivisionSettings = SubdivisionSettings {};
 		udmSubdiv["maxLevel"] >> m_subdivisionSettings->maxLevel;
 		udmSubdiv["maxEdgeScreenSize"] >> m_subdivisionSettings->maxEdgeScreenSize;
