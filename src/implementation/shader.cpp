@@ -18,7 +18,7 @@ module;
 module pragma.scenekit;
 
 import :shader;
-#pragma clang optimize off
+
 const std::string pragma::scenekit::COLORSPACE_AUTO = "";
 const std::string pragma::scenekit::COLORSPACE_RAW = "__builtin_raw";
 const std::string pragma::scenekit::COLORSPACE_SRGB = "__builtin_srgb";

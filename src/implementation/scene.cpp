@@ -48,7 +48,6 @@ import :model_cache;
 import :object;
 import :mesh;
 
-#pragma clang optimize off
 static std::shared_ptr<spdlog::logger> g_logger = nullptr;
 void pragma::scenekit::set_logger(const std::shared_ptr<spdlog::logger> &logger) { g_logger = logger; }
 const std::shared_ptr<spdlog::logger> &pragma::scenekit::get_logger() { return g_logger; }

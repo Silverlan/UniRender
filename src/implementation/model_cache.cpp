@@ -20,7 +20,6 @@ import :scene;
 import :object;
 import :mesh;
 
-#pragma clang optimize off
 std::shared_ptr<pragma::scenekit::ShaderCache> pragma::scenekit::ShaderCache::Create() { return std::shared_ptr<ShaderCache> {new ShaderCache {}}; }
 std::shared_ptr<pragma::scenekit::ShaderCache> pragma::scenekit::ShaderCache::Create(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager)
 {
