@@ -4,12 +4,11 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/util.h>
-#include <mathutil/uvec.h>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
+#include <memory>
 
 export module pragma.scenekit:world_object;
+
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	class WorldObject;

@@ -3,16 +3,17 @@
 
 module;
 
+#include "sharedutils/magic_enum.hpp"
+#include <functional>
+#include <cinttypes>
+#include <optional>
+#include <vector>
+#include <memory>
+#include <cstring>
+#include <cassert>
+#include <unordered_map>
+
 #include <iostream>
-#include <util_image_buffer.hpp>
-#include <sharedutils/util_path.hpp>
-#include <sharedutils/util_library.hpp>
-#include <sharedutils/magic_enum.hpp>
-#include <sharedutils/util_parallel_job.hpp>
-#include <sharedutils/util_event_reply.hpp>
-#include <util_image.hpp>
-#include <fsys/ifile.hpp>
-#include <udm.hpp>
 
 module pragma.scenekit;
 
@@ -311,7 +312,7 @@ void pragma::scenekit::Renderer::SetIsBuildingKernels(bool compiling)
 	if(f)
 		f(compiling);
 }
-udm::PropertyWrapper pragma::scenekit::Renderer::GetApiData() const { return *m_apiData; }
+udm::PropertyWrapper pragma::scenekit::Renderer::GetApiData() const { return udm::PropertyWrapper{*m_apiData}; }
 pragma::scenekit::WorldObject *pragma::scenekit::Renderer::FindActor(const util::Uuid &uuid)
 {
 	auto it = m_actorMap.find(util::get_uuid_hash(uuid));

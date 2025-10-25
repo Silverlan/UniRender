@@ -4,12 +4,10 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/util_hash.hpp>
-#include <mathutil/color.h>
-#include <udm.hpp>
 #include <optional>
 #include <functional>
 #include <memory>
+#include <cassert>
 
 export module pragma.scenekit:shader_nodes;
 

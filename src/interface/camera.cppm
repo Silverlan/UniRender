@@ -4,11 +4,8 @@
 module;
 
 #include "definitions.hpp"
-#include <mathutil/umath.h>
-#include <sharedutils/util_weak_handle.hpp>
 #include <memory>
 #include <optional>
-#include <udm.hpp>
 
 export module pragma.scenekit:camera;
 

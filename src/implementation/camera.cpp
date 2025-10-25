@@ -3,10 +3,7 @@
 
 module;
 
-#include <mathutil/camera.hpp>
-#include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/datastream.h>
-#include <udm.hpp>
+#include <cinttypes>
 
 module pragma.scenekit;
 

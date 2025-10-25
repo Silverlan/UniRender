@@ -8,13 +8,14 @@ module;
 
 #include "definitions.hpp"
 #include <iostream>
-#include <mathutil/vertex.hpp>
-#include <mathutil/uvec.h>
 #include <vector>
 #include <memory>
+#include <cassert>
 #include <functional>
 
 export module pragma.scenekit:subdivision;
+
+export import pragma.math;
 
 export namespace pragma::scenekit {
 	using FaceVertexIndex = uint32_t;

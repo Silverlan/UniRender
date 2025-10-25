@@ -4,11 +4,13 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/util.h>
 #include <memory>
 
+#include <limits>
+
 export module pragma.scenekit:scene_object;
+
+export import pragma.util;
 
 export namespace pragma::scenekit {
 	class Scene;

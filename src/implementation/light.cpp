@@ -3,13 +3,6 @@
 
 module;
 
-#include <udm.hpp>
-#include <mathutil/umath_lighting.hpp>
-#include <mathutil/color.h>
-#include <sharedutils/util_pragma.hpp>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_weak_handle.hpp>
-
 module pragma.scenekit;
 
 import :light;

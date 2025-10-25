@@ -3,10 +3,7 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <mathutil/uvec.h>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
+#include <string>
 
 module pragma.scenekit;
 

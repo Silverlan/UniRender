@@ -20,10 +20,6 @@
 #endif
 #endif
 
-namespace uimg {
-	class ImageBuffer;
-	struct ImageLayerSet;
-};
 namespace util::ocio {
 	class ColorProcessor;
 };
@@ -46,15 +42,8 @@ namespace ccl {
 	class BufferParams;
 	class SessionParams;
 };
-namespace udm {
-	struct Property;
-};
 namespace OpenImageIO_v2_1 {
 	class ustring;
-};
-namespace umath {
-	class Transform;
-	class ScaledTransform;
 };
 namespace spdlog {
 	class logger;
@@ -62,6 +51,5 @@ namespace spdlog {
 namespace OpenSubdiv::v3_6_0::Far {
 	class PrimvarRefiner;
 };
-class DataStream;
 
 #endif

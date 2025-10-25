@@ -3,7 +3,10 @@
 
 module;
 
-#include <util_image_buffer.hpp>
+#include <optional>
+#include <memory>
+#include <functional>
+
 #include <OpenImageDenoise/oidn.hpp>
 #include <iostream>
 

@@ -4,9 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/util_weak_handle.hpp>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
 #include <memory>
 #include <optional>
 #include <functional>
@@ -56,5 +53,11 @@ export namespace pragma::scenekit {
 		// TODO
 		umath::Transform m_motionPose = {};
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export { REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Object::Flags) }
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Object::Flags> : std::true_type {};
+	}
+}

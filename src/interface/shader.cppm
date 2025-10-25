@@ -6,13 +6,9 @@ module;
 #include "definitions.hpp"
 #include <memory>
 #include <functional>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_hair.hpp>
-#include <sharedutils/uuid.h>
-#include <sharedutils/util_virtual_shared_from_this.hpp>
-#include <udm.hpp>
-#include <mathutil/transform.hpp>
 #include <iostream>
+#include <optional>
+#include <cassert>
 
 export module pragma.scenekit:shader;
 

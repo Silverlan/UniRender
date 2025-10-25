@@ -3,10 +3,11 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_weak_handle.hpp>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
+#include <cinttypes>
+#include <string>
+#include <functional>
+#include <unordered_map>
+
 #include <optional>
 #include <cassert>
 

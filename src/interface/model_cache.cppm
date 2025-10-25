@@ -5,14 +5,14 @@ module;
 
 #include "definitions.hpp"
 #include <memory>
+#include <vector>
 #include <unordered_map>
-#include <mathutil/umath.h>
-#include <sharedutils/datastream.h>
-#include <udm.hpp>
 
 #undef GetObject
 
 export module pragma.scenekit:model_cache;
+
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	class NodeManager;
@@ -115,5 +115,11 @@ export namespace pragma::scenekit {
 		std::vector<ModelCacheChunk> m_chunks {};
 		bool m_unique = false;
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export {REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::ModelCacheChunk::Flags)};
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::ModelCacheChunk::Flags> : std::true_type {};
+	}
+}

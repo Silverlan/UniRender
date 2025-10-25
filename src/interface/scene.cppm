@@ -4,20 +4,17 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/util.h>
-#include <sharedutils/util_log.hpp>
 #include <condition_variable>
 #include <memory>
-#include <mathutil/uvec.h>
 #include <functional>
 #include <optional>
 #include <atomic>
 #include <thread>
-#include <udm.hpp>
 
 export module pragma.scenekit:scene;
+
+export import pragma.image;
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	class GroupNodeDesc;
@@ -171,13 +168,13 @@ export namespace pragma::scenekit {
 		static std::string ToRelativePath(const std::string &absPath);
 		static std::string ToAbsolutePath(const std::string &relPath);
 		template<class T>
-		static void SerializeDataBlock(const T &value, DataStream &dsOut, size_t dataStartOffset)
+		static void SerializeDataBlock(const T &value, util::DataStream &dsOut, size_t dataStartOffset)
 		{
 			dsOut->Write(reinterpret_cast<const uint8_t *>(&value) + dataStartOffset, sizeof(T) - dataStartOffset);
 		}
 
 		template<class T>
-		static void DeserializeDataBlock(T &value, DataStream &dsOut, size_t dataStartOffset)
+		static void DeserializeDataBlock(T &value, util::DataStream &dsOut, size_t dataStartOffset)
 		{
 			dsOut->Read(reinterpret_cast<uint8_t *>(&value) + dataStartOffset, sizeof(T) - dataStartOffset);
 		}
@@ -273,5 +270,12 @@ export namespace pragma::scenekit {
 	};
 	enum class PassType : uint32_t;
 	DLLRTUTIL std::optional<PassType> get_main_pass_type(Scene::RenderMode renderMode);
+
+	using namespace umath::scoped_enum::bitwise;
 };
-export { REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Scene::StateFlags) }
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Scene::StateFlags> : std::true_type {};
+	}
+}

@@ -4,12 +4,13 @@
 module;
 
 #include "definitions.hpp"
-#include <util_image_types.hpp>
 #include <cinttypes>
 #include <functional>
 #include <memory>
 
 export module pragma.scenekit:denoise;
+
+export import pragma.image;
 
 export namespace pragma::scenekit::denoise {
 	struct DLLRTUTIL Info {
