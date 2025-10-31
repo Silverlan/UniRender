@@ -4,11 +4,7 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
-#include <functional>
 #include <cassert>
-#include <limits>
 
 export module pragma.scenekit:data_value;
 

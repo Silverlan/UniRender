@@ -4,10 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <functional>
-#include <iostream>
-#include <optional>
 #include <cassert>
 
 export module pragma.scenekit:shader;

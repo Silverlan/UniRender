@@ -4,8 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
 
 export module pragma.scenekit:camera;
 

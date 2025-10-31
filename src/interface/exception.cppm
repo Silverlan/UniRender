@@ -4,10 +4,10 @@
 module;
 
 #include "definitions.hpp"
-#include <exception>
-#include <string>
 
 export module pragma.scenekit:exception;
+
+export import std;
 
 export namespace pragma::scenekit {
 	class DLLRTUTIL Exception : public std::exception {

@@ -4,9 +4,7 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
 
-#include <limits>
 
 export module pragma.scenekit:scene_object;
 

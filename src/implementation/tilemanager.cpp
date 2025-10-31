@@ -3,9 +3,7 @@
 
 module;
 
-#include <iostream>
 
-#include <cstring>
 #include <sharedutils/ctpl_stl.h>
 
 module pragma.scenekit;

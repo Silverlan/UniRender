@@ -3,16 +3,9 @@
 
 module;
 
-#include <optional>
-#include <functional>
 
-#include <memory>
-#include <unordered_map>
-#include <algorithm>
 
-#include <iostream>
 #undef __UTIL_STRING_H__
-#include <queue>
 #include <cassert>
 
 module pragma.scenekit;

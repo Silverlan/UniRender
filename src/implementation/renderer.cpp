@@ -4,16 +4,8 @@
 module;
 
 #include "sharedutils/magic_enum.hpp"
-#include <functional>
-#include <cinttypes>
-#include <optional>
-#include <vector>
-#include <memory>
-#include <cstring>
 #include <cassert>
-#include <unordered_map>
 
-#include <iostream>
 
 module pragma.scenekit;
 

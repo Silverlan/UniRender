@@ -4,9 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
-#include <functional>
 
 export module pragma.scenekit:object;
 

@@ -3,17 +3,8 @@
 
 module;
 
-#include <unordered_map>
-#include <cmath>
 
-#include <cstddef>
 #include <cassert>
-#include <stdexcept>
-#include <iostream>
-#include <sstream>
-#include <optional>
-#include <thread>
-#include <memory>
 #include "interface/definitions.hpp"
 
 module pragma.scenekit;

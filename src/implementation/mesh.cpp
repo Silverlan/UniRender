@@ -3,14 +3,8 @@
 
 module;
 
-#include <optional>
 
-#include <cinttypes>
-#include <vector>
-#include <functional>
 #include <cassert>
-#include <memory>
-#include <iostream>
 
 module pragma.scenekit;
 

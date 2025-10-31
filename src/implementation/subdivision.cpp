@@ -5,12 +5,9 @@ module;
 
 #define RT_ENABLE_SUBDIVISION
 #ifdef RT_ENABLE_SUBDIVISION
-#include <functional>
-#include <iostream>
 
 #include <opensubdiv/far/topologyDescriptor.h>
 #include <opensubdiv/far/primvarRefiner.h>
-#include <memory>
 #endif
 
 module pragma.scenekit;

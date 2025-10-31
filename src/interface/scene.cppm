@@ -4,12 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <condition_variable>
-#include <memory>
-#include <functional>
-#include <optional>
-#include <atomic>
-#include <thread>
 
 export module pragma.scenekit:scene;
 

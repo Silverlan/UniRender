@@ -3,12 +3,8 @@
 
 module;
 
-#include <optional>
-#include <memory>
-#include <functional>
 
 #include <OpenImageDenoise/oidn.hpp>
-#include <iostream>
 
 module pragma.scenekit;
 

@@ -4,11 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
-#include <vector>
-#include <functional>
-#include <unordered_map>
 
 export module pragma.scenekit:mesh;
 

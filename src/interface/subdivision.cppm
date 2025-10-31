@@ -7,11 +7,7 @@ module;
 #ifdef RT_ENABLE_SUBDIVISION
 
 #include "definitions.hpp"
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <cassert>
-#include <functional>
 
 export module pragma.scenekit:subdivision;
 
