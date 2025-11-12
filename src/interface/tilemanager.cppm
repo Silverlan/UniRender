@@ -4,7 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/ctpl_stl.h>
 
 export module pragma.scenekit:tile_manager;
 

@@ -3,15 +3,11 @@
 
 module;
 
-#include "sharedutils/magic_enum.hpp"
 #include "interface/definitions.hpp"
 
 #ifdef ENABLE_CYCLES_LOGGING
 #pragma comment(lib, "shlwapi.lib")
 #endif
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 module pragma.scenekit;
 

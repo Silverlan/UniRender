@@ -3,9 +3,6 @@
 
 module;
 
-
-#include <sharedutils/ctpl_stl.h>
-
 module pragma.scenekit;
 
 import pragma.ocio;
