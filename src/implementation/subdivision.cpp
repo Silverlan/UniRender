@@ -6,6 +6,8 @@ module;
 #define RT_ENABLE_SUBDIVISION
 #ifdef RT_ENABLE_SUBDIVISION
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <opensubdiv/far/topologyDescriptor.h>
 #include <opensubdiv/far/primvarRefiner.h>
 #endif
