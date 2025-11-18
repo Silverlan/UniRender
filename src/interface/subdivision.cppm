@@ -7,14 +7,11 @@ module;
 #ifdef RT_ENABLE_SUBDIVISION
 
 #include "definitions.hpp"
-#include <iostream>
-#include <mathutil/vertex.hpp>
-#include <mathutil/uvec.h>
-#include <vector>
-#include <memory>
-#include <functional>
+#include <cassert>
 
 export module pragma.scenekit:subdivision;
+
+export import pragma.math;
 
 export namespace pragma::scenekit {
 	using FaceVertexIndex = uint32_t;

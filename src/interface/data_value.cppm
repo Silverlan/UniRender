@@ -4,15 +4,11 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
-#include <functional>
-#include <mathutil/uvec.h>
-#include <mathutil/umat.h>
-#include <sharedutils/datastream.h>
-#include <udm.hpp>
+#include <cassert>
 
 export module pragma.scenekit:data_value;
+
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	using STBool = bool;
@@ -264,7 +260,7 @@ export namespace pragma::scenekit {
 			return {};
 		}
 		static DataValue Deserialize(udm::LinkedPropertyWrapper &data);
-		static DataValue Deserialize(DataStream &dsIn);
+		static DataValue Deserialize(util::DataStream &dsIn);
 		DataValue(SocketType type, const std::shared_ptr<void> &value) : type {type}, value {value} {}
 		DataValue() = default;
 
@@ -272,7 +268,7 @@ export namespace pragma::scenekit {
 		bool operator!=(const DataValue &other) const { return !operator==(other); }
 
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
-		void Serialize(DataStream &dsOut) const;
+		void Serialize(util::DataStream &dsOut) const;
 
 		SocketType type = SocketType::Bool;
 		std::shared_ptr<void> value = nullptr;

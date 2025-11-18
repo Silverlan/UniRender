@@ -4,17 +4,11 @@
 module;
 
 #include "definitions.hpp"
-#include <memory>
-#include <optional>
-#include <mathutil/uvec.h>
-#include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/util.h>
-#include <sharedutils/util_hair.hpp>
-#include <udm.hpp>
 
 export module pragma.scenekit:mesh;
 
 import :scene_object;
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	constexpr inline std::string_view TANGENT_POSTFIX = ".tangent";
@@ -113,5 +107,11 @@ export namespace pragma::scenekit {
 
 		std::vector<uint32_t> m_originShaderIndexTable;
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export { REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Mesh::Flags) }
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Mesh::Flags> : std::true_type {};
+	}
+}

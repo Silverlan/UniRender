@@ -3,11 +3,6 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_weak_handle.hpp>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
-#include <optional>
 #include <cassert>
 
 module pragma.scenekit;

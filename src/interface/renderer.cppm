@@ -4,18 +4,11 @@
 module;
 
 #include "definitions.hpp"
-#include <functional>
-#include <condition_variable>
-#include <util_image.hpp>
-#include <sharedutils/util_parallel_job.hpp>
-#include <sharedutils/util.h>
-#include <sharedutils/util_event_reply.hpp>
-#include <udm_types.hpp>
-#include <cinttypes>
 
 export module pragma.scenekit:renderer;
 
 import :tile_manager;
+export import pragma.udm;
 
 export namespace pragma::scenekit {
 	DLLRTUTIL void set_log_handler(const std::function<void(const std::string)> &logHandler = nullptr);
@@ -199,9 +192,14 @@ export namespace pragma::scenekit {
 		std::unordered_map<PassType, uint32_t> m_passes {};
 		uint32_t m_nextOutputIndex = 0;
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export
-{
-	REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Renderer::Flags)
-	REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Renderer::Feature)
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Renderer::Flags> : std::true_type {};
+
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Renderer::Feature> : std::true_type {};
+	}
 }

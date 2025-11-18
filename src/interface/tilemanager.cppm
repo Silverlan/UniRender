@@ -4,14 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <cinttypes>
-#include <vector>
-#include <mutex>
-#include <array>
-#include <queue>
-#include <optional>
-#include <sharedutils/ctpl_stl.h>
-#include <mathutil/uvec.h>
 
 export module pragma.scenekit:tile_manager;
 
@@ -104,5 +96,11 @@ export namespace pragma::scenekit {
 		std::vector<TileData> m_completedTiles;
 		std::shared_ptr<uimg::ImageBuffer> m_progressiveImage = nullptr;
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export { REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::TileManager::TileData::Flags) }
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::TileManager::TileData::Flags> : std::true_type {};
+	}
+}

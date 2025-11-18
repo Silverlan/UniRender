@@ -3,16 +3,7 @@
 
 module;
 
-#include <iostream>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_pragma.hpp>
 #undef __UTIL_STRING_H__
-#include <sharedutils/util_string.h>
-#include <sharedutils/util_hair.hpp>
-#include <sharedutils/util_debug.h>
-#include <mathutil/uvec.h>
-#include <udm.hpp>
-#include <queue>
 #include <cassert>
 
 module pragma.scenekit;

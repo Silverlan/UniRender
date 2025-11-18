@@ -3,11 +3,6 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <mathutil/uvec.h>
-#include <mathutil/transform.hpp>
-#include <udm.hpp>
-
 module pragma.scenekit;
 
 import :world_object;

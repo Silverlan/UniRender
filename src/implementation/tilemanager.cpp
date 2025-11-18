@@ -3,11 +3,6 @@
 
 module;
 
-#include <util_image_buffer.hpp>
-#include <sharedutils/util.h>
-#include <cstring>
-#include <sharedutils/ctpl_stl.h>
-
 module pragma.scenekit;
 
 import pragma.ocio;
@@ -103,7 +98,7 @@ void pragma::scenekit::TileManager::Reload(bool waitForCompletion)
 		auto w = m_progressiveImage->GetWidth();
 		auto h = m_progressiveImage->GetHeight();
 		m_progressiveImage = uimg::ImageBuffer::Create(w,h,uimg::Format::RGBA16);
-		m_progressiveImage->Clear(Color::Red);
+		m_progressiveImage->Clear(colors::Red);
 	}*/
 
 	m_inputTileMutex.lock();

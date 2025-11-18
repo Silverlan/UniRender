@@ -3,19 +3,7 @@
 
 module;
 
-#include <cstddef>
 #include <cassert>
-#include <stdexcept>
-#include <iostream>
-#include <sstream>
-#include <optional>
-#include <thread>
-#include <memory>
-#include <sharedutils/util_hash.hpp>
-#include <sharedutils/uuid.h>
-#include <sharedutils/util_debug.h>
-#include <mathutil/uvec.h>
-#include <udm.hpp>
 #include "interface/definitions.hpp"
 
 module pragma.scenekit;

@@ -4,12 +4,6 @@
 module;
 
 #include "definitions.hpp"
-#include <sharedutils/util_pragma.hpp>
-#include <sharedutils/util_weak_handle.hpp>
-#include <mathutil/color.h>
-#include <mathutil/uvec.h>
-#include <udm.hpp>
-#include <memory>
 
 export module pragma.scenekit:light;
 
@@ -82,5 +76,11 @@ export namespace pragma::scenekit {
 		bool m_bRound = false;
 		Flags m_flags = Flags::None;
 	};
+	using namespace umath::scoped_enum::bitwise;
 };
-export { REGISTER_BASIC_BITWISE_OPERATORS(pragma::scenekit::Light::Flags) }
+export {
+	namespace umath::scoped_enum::bitwise {
+		template<>
+		struct enable_bitwise_operators<pragma::scenekit::Light::Flags> : std::true_type {};
+	}
+}

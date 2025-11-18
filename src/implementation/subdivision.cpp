@@ -1,19 +1,20 @@
 // SPDX-FileCopyrightText: (c) 2024 Silverlan <opensource@pragma-engine.com>
 // SPDX-License-Identifier: MIT
 
+module;
+
 #define RT_ENABLE_SUBDIVISION
 #ifdef RT_ENABLE_SUBDIVISION
 
-module;
-
-#include <mathutil/umath.h>
-#include <mathutil/vertex.hpp>
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <opensubdiv/far/topologyDescriptor.h>
 #include <opensubdiv/far/primvarRefiner.h>
-#include <memory>
+#endif
 
 module pragma.scenekit;
 
+#ifdef RT_ENABLE_SUBDIVISION
 import :subdivision;
 
 struct OsdVertexWeight {

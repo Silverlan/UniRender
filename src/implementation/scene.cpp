@@ -3,35 +3,11 @@
 
 module;
 
-#include <optional>
-#include <iostream>
-#include <fsys/filesystem.h>
-#include <fsys/ifile.hpp>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_file.h>
-#include <sharedutils/util_ifile.hpp>
-#include <sharedutils/util.h>
-#include <sharedutils/util_path.hpp>
-#include <sharedutils/magic_enum.hpp>
-#include <sharedutils/util_hash.hpp>
-#include <sharedutils/util_log.hpp>
-#include <util_image.hpp>
-#include <util_image_buffer.hpp>
-#include <util_texture_info.hpp>
-#include <udm.hpp>
-#include <random>
 #include "interface/definitions.hpp"
 
 #ifdef ENABLE_CYCLES_LOGGING
 #pragma comment(lib, "shlwapi.lib")
 #endif
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-// ccl happens to have the same include guard name as sharedutils, so we have to undef it here
-#undef __UTIL_STRING_H__
-#include <sharedutils/util_string.h>
 
 module pragma.scenekit;
 

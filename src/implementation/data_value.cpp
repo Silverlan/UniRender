@@ -3,17 +3,11 @@
 
 module;
 
-#include <memory>
-#include <mathutil/umath.h>
-#include <optional>
-#include <sharedutils/datastream.h>
-#include <udm.hpp>
-
 module pragma.scenekit;
 
 import :data_value;
 
-void pragma::scenekit::DataValue::Serialize(DataStream &dsOut) const
+void pragma::scenekit::DataValue::Serialize(util::DataStream &dsOut) const
 {
 	dsOut->Write(type);
 	dsOut->Write<bool>(value != nullptr);
@@ -76,7 +70,7 @@ void pragma::scenekit::DataValue::Serialize(DataStream &dsOut) const
 	}
 	static_assert(umath::to_integral(SocketType::Count) == 16);
 }
-pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(DataStream &dsIn)
+pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(util::DataStream &dsIn)
 {
 	auto type = dsIn->Read<SocketType>();
 	auto hasValue = dsIn->Read<bool>();

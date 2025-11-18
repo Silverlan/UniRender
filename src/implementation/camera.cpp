@@ -3,11 +3,6 @@
 
 module;
 
-#include <mathutil/camera.hpp>
-#include <sharedutils/util_weak_handle.hpp>
-#include <sharedutils/datastream.h>
-#include <udm.hpp>
-
 module pragma.scenekit;
 
 import :world_object;

@@ -3,11 +3,7 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_hair.hpp>
-#include <sharedutils/util_weak_handle.hpp>
-#include <udm.hpp>
-#include <iostream>
+#include <cassert>
 
 module pragma.scenekit;
 
@@ -78,7 +74,10 @@ pragma::scenekit::Mesh::Mesh(uint64_t numVerts, uint64_t numTris, Flags flags) :
 util::WeakHandle<pragma::scenekit::Mesh> pragma::scenekit::Mesh::GetHandle() { return util::WeakHandle<pragma::scenekit::Mesh> {shared_from_this()}; }
 
 enum class SerializationFlags : uint8_t { None = 0u, UseAlphas = 1u, UseSubdivFaces = UseAlphas << 1u };
-REGISTER_BASIC_BITWISE_OPERATORS(SerializationFlags)
+namespace umath::scoped_enum::bitwise {
+	template<>
+	struct enable_bitwise_operators<SerializationFlags> : std::true_type {};
+}
 void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const
 {
 	auto numVerts = umath::min(m_numVerts, m_verts.size());
