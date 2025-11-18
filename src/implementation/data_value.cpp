@@ -3,9 +3,6 @@
 
 module;
 
-
-
-
 module pragma.scenekit;
 
 import :data_value;

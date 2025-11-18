@@ -3,7 +3,6 @@
 
 module;
 
-
 #include <cassert>
 #include "interface/definitions.hpp"
 

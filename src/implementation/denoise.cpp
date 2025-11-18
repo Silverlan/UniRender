@@ -3,7 +3,6 @@
 
 module;
 
-
 #include <OpenImageDenoise/oidn.hpp>
 
 module pragma.scenekit;

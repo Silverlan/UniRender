@@ -5,7 +5,6 @@ module;
 
 #include <cassert>
 
-
 module pragma.scenekit;
 
 import pragma.ocio;
@@ -303,7 +302,7 @@ void pragma::scenekit::Renderer::SetIsBuildingKernels(bool compiling)
 	if(f)
 		f(compiling);
 }
-udm::PropertyWrapper pragma::scenekit::Renderer::GetApiData() const { return udm::PropertyWrapper{*m_apiData}; }
+udm::PropertyWrapper pragma::scenekit::Renderer::GetApiData() const { return udm::PropertyWrapper {*m_apiData}; }
 pragma::scenekit::WorldObject *pragma::scenekit::Renderer::FindActor(const util::Uuid &uuid)
 {
 	auto it = m_actorMap.find(util::get_uuid_hash(uuid));

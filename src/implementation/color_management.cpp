@@ -3,7 +3,6 @@
 
 module;
 
-
 module pragma.scenekit;
 
 import pragma.ocio;

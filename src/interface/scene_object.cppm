@@ -5,7 +5,6 @@ module;
 
 #include "definitions.hpp"
 
-
 export module pragma.scenekit:scene_object;
 
 export import pragma.util;

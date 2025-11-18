@@ -3,8 +3,6 @@
 
 module;
 
-
-
 #undef __UTIL_STRING_H__
 #include <cassert>
 

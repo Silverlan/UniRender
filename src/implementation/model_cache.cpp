@@ -3,7 +3,6 @@
 
 module;
 
-
 #undef GetObject
 
 module pragma.scenekit;
