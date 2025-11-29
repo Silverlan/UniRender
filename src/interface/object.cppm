@@ -4,6 +4,7 @@
 module;
 
 #include "definitions.hpp"
+#include "util_enum_flags.hpp"
 
 export module pragma.scenekit:object;
 
@@ -53,8 +54,5 @@ export namespace pragma::scenekit {
 	using namespace umath::scoped_enum::bitwise;
 };
 export {
-	namespace umath::scoped_enum::bitwise {
-		template<>
-		struct enable_bitwise_operators<pragma::scenekit::Object::Flags> : std::true_type {};
-	}
+	REGISTER_ENUM_FLAGS(pragma::scenekit::Object::Flags)
 }
