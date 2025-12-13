@@ -21,17 +21,17 @@ export namespace pragma::scenekit {
 	class ShaderCache;
 	class Renderer;
 	using PRenderer = std::shared_ptr<Renderer>;
-	class DLLRTUTIL RenderWorker : public util::ParallelWorker<uimg::ImageLayerSet> {
+	class DLLRTUTIL RenderWorker : public util::ParallelWorker<image::ImageLayerSet> {
 	  public:
 		friend Renderer;
 		RenderWorker(Renderer &renderer);
-		using util::ParallelWorker<uimg::ImageLayerSet>::Cancel;
+		using ParallelWorker<image::ImageLayerSet>::Cancel;
 		virtual void Wait() override;
-		virtual uimg::ImageLayerSet GetResult() override;
+		virtual image::ImageLayerSet GetResult() override;
 
-		using util::ParallelWorker<uimg::ImageLayerSet>::SetResultMessage;
-		using util::ParallelWorker<uimg::ImageLayerSet>::AddThread;
-		using util::ParallelWorker<uimg::ImageLayerSet>::UpdateProgress;
+		using ParallelWorker<image::ImageLayerSet>::SetResultMessage;
+		using ParallelWorker<image::ImageLayerSet>::AddThread;
+		using ParallelWorker<image::ImageLayerSet>::UpdateProgress;
 	  private:
 		virtual void DoCancel(const std::string &resultMsg, std::optional<int32_t> resultCode) override;
 		PRenderer m_renderer = nullptr;
@@ -89,7 +89,7 @@ export namespace pragma::scenekit {
 			None = std::numeric_limits<uint8_t>::max()
 		};
 		enum class Feature : uint32_t { None = 0, OptiXAvailable = 1 };
-		static std::shared_ptr<Renderer> Create(const pragma::scenekit::Scene &scene, const std::string &rendererIdentifier, std::string &outErr, Flags flags = Flags::None);
+		static std::shared_ptr<Renderer> Create(const Scene &scene, const std::string &rendererIdentifier, std::string &outErr, Flags flags = Flags::None);
 		static bool UnloadRendererLibrary(const std::string &rendererIdentifier);
 		static void Close();
 
@@ -106,15 +106,15 @@ export namespace pragma::scenekit {
 		virtual bool BeginSceneEdit() { return false; }
 		virtual bool EndSceneEdit() { return false; }
 		virtual bool SyncEditedActor(const util::Uuid &uuid) = 0;
-		virtual bool AddLiveActor(pragma::scenekit::WorldObject &actor) = 0;
+		virtual bool AddLiveActor(WorldObject &actor) = 0;
 		virtual bool Export(const std::string &path) = 0;
 		virtual std::optional<std::string> SaveRenderPreview(const std::string &path, std::string &outErr) const = 0;
-		virtual util::ParallelJob<uimg::ImageLayerSet> StartRender() = 0;
+		virtual util::ParallelJob<image::ImageLayerSet> StartRender() = 0;
 		void StopRendering();
 		virtual bool IsFeatureEnabled(Feature feature) const;
 
-		const std::unordered_map<size_t, pragma::scenekit::WorldObject *> &GetActorMap() const { return m_actorMap; }
-		pragma::scenekit::WorldObject *FindActor(const util::Uuid &uuid);
+		const std::unordered_map<size_t, WorldObject *> &GetActorMap() const { return m_actorMap; }
+		WorldObject *FindActor(const util::Uuid &uuid);
 
 		std::shared_ptr<Mesh> FindRenderMeshByHash(const util::MurmurHash3 &hash) const;
 		udm::PropertyWrapper GetApiData() const;
@@ -129,10 +129,10 @@ export namespace pragma::scenekit {
 		const Scene &GetScene() const { return const_cast<Renderer *>(this)->GetScene(); }
 		TileManager &GetTileManager() { return m_tileManager; }
 		const TileManager &GetTileManager() const { return const_cast<Renderer *>(this)->GetTileManager(); }
-		std::vector<pragma::scenekit::TileManager::TileData> GetRenderedTileBatch();
+		std::vector<TileManager::TileData> GetRenderedTileBatch();
 		void AddActorToActorMap(WorldObject &obj);
 
-		const std::unordered_map<PassType, std::array<std::shared_ptr<uimg::ImageBuffer>, umath::to_integral(StereoEye::Count)>> &GetResultImageBuffers() const { return m_resultImageBuffers; }
+		const std::unordered_map<PassType, std::array<std::shared_ptr<image::ImageBuffer>, math::to_integral(StereoEye::Count)>> &GetResultImageBuffers() const { return m_resultImageBuffers; }
 	  protected:
 		Renderer(const Scene &scene, Flags flags);
 		bool Initialize();
@@ -158,16 +158,16 @@ export namespace pragma::scenekit {
 		};
 		enum class RenderStageResult : uint8_t { Complete = 0, Continue };
 		void OnParallelWorkerCancelled();
-		pragma::scenekit::Renderer::RenderStageResult StartNextRenderStage(RenderWorker &worker, pragma::scenekit::Renderer::ImageRenderStage stage, StereoEye eyeStage);
-		virtual util::EventReply HandleRenderStage(RenderWorker &worker, pragma::scenekit::Renderer::ImageRenderStage stage, StereoEye eyeStage, pragma::scenekit::Renderer::RenderStageResult *optResult = nullptr);
+		RenderStageResult StartNextRenderStage(RenderWorker &worker, ImageRenderStage stage, StereoEye eyeStage);
+		virtual util::EventReply HandleRenderStage(RenderWorker &worker, ImageRenderStage stage, StereoEye eyeStage, RenderStageResult *optResult = nullptr);
 		virtual void PrepareCyclesSceneForRendering();
-		virtual bool UpdateStereoEye(pragma::scenekit::RenderWorker &worker, pragma::scenekit::Renderer::ImageRenderStage stage, StereoEye &eyeStage) = 0;
+		virtual bool UpdateStereoEye(RenderWorker &worker, ImageRenderStage stage, StereoEye &eyeStage) = 0;
 		virtual void SetCancelled(const std::string &msg = "Cancelled by application.") = 0;
 		virtual void CloseRenderScene() = 0;
-		virtual void FinalizeImage(uimg::ImageBuffer &imgBuf, StereoEye eyeStage) {};
+		virtual void FinalizeImage(image::ImageBuffer &imgBuf, StereoEye eyeStage) {};
 		void UpdateActorMap();
 		std::pair<uint32_t, PassType> AddPass(PassType passType);
-		void DumpImage(const std::string &renderStage, uimg::ImageBuffer &imgBuffer, uimg::ImageFormat format = uimg::ImageFormat::HDR, const std::optional<std::string> &fileName = {}) const;
+		void DumpImage(const std::string &renderStage, image::ImageBuffer &imgBuffer, image::ImageFormat format = image::ImageFormat::HDR, const std::optional<std::string> &fileName = {}) const;
 		bool ShouldDumpRenderStageImages() const;
 
 		std::shared_ptr<Scene> m_scene = nullptr;
@@ -183,17 +183,17 @@ export namespace pragma::scenekit {
 		std::atomic<bool> m_progressiveRunning = false;
 		std::condition_variable m_progressiveCondition {};
 		std::mutex m_progressiveMutex {};
-		std::shared_ptr<pragma::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
-		std::unordered_map<size_t, pragma::scenekit::WorldObject *> m_actorMap;
+		std::shared_ptr<ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
+		std::unordered_map<size_t, WorldObject *> m_actorMap;
 
-		std::shared_ptr<uimg::ImageBuffer> &GetResultImageBuffer(PassType type, StereoEye eye = StereoEye::Left);
-		uimg::ImageBuffer *FindResultImageBuffer(PassType type, StereoEye eye = StereoEye::Left);
-		std::unordered_map<PassType, std::array<std::shared_ptr<uimg::ImageBuffer>, umath::to_integral(StereoEye::Count)>> m_resultImageBuffers = {};
+		std::shared_ptr<image::ImageBuffer> &GetResultImageBuffer(PassType type, StereoEye eye = StereoEye::Left);
+		image::ImageBuffer *FindResultImageBuffer(PassType type, StereoEye eye = StereoEye::Left);
+		std::unordered_map<PassType, std::array<std::shared_ptr<image::ImageBuffer>, math::to_integral(StereoEye::Count)>> m_resultImageBuffers = {};
 
 		std::unordered_map<PassType, uint32_t> m_passes {};
 		uint32_t m_nextOutputIndex = 0;
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::Renderer::Flags)

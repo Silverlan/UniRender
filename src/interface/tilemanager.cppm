@@ -32,12 +32,12 @@ export namespace pragma::scenekit {
 		struct ThreadData {};
 		enum class State : uint8_t { Initial = 0, Running, Cancelled, Stopped };
 		~TileManager();
-		void Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure = 0.f, float gamma = DEFAULT_GAMMA, pragma::ocio::ColorProcessor *optColorProcessor = nullptr);
+		void Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure = 0.f, float gamma = DEFAULT_GAMMA, ocio::ColorProcessor *optColorProcessor = nullptr);
 		void Reload(bool waitForCompletion);
 		void Cancel();
 		void Wait();
 		void StopAndWait();
-		std::shared_ptr<uimg::ImageBuffer> UpdateFinalImage();
+		std::shared_ptr<image::ImageBuffer> UpdateFinalImage();
 		std::vector<TileData> GetRenderedTileBatch();
 		void AddRenderedTile(TileData &&tile);
 		Vector2i GetTileSize() const { return m_tileSize; }
@@ -74,7 +74,7 @@ export namespace pragma::scenekit {
 		float m_exposure = 0.f;
 		float m_gamma = DEFAULT_GAMMA;
 
-		std::shared_ptr<pragma::ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
+		std::shared_ptr<ocio::ColorProcessor> m_colorTransformProcessor = nullptr;
 
 		bool m_useFloatData = false;
 		bool m_cpuDevice = false;
@@ -95,9 +95,9 @@ export namespace pragma::scenekit {
 
 		std::mutex m_completedTileMutex;
 		std::vector<TileData> m_completedTiles;
-		std::shared_ptr<uimg::ImageBuffer> m_progressiveImage = nullptr;
+		std::shared_ptr<image::ImageBuffer> m_progressiveImage = nullptr;
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::TileManager::TileData::Flags)

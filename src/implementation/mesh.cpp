@@ -27,7 +27,7 @@ pragma::scenekit::PMesh pragma::scenekit::Mesh::Create(const std::string &name, 
 	meshWrapper->m_shader.reserve(numTris);
 	meshWrapper->m_smooth.reserve(numTris);
 
-	if(umath::is_flag_set(flags, Flags::HasAlphas) || umath::is_flag_set(flags, Flags::HasWrinkles)) {
+	if(math::is_flag_set(flags, Flags::HasAlphas) || math::is_flag_set(flags, Flags::HasWrinkles)) {
 		// Note: There's no option to supply user-data for vertices in Cycles, so we're (ab)using ATTR_STD_POINTINESS arbitrarily,
 		// which is currently only used for Fluid Domain in Cycles, which we don't use anyway (State: 2020-02-25). This may change in the future!
 		meshWrapper->m_alphas = std::vector<float> {};
@@ -71,17 +71,17 @@ pragma::scenekit::Mesh::Mesh(uint64_t numVerts, uint64_t numTris, Flags flags) :
 	}
 }
 
-util::WeakHandle<pragma::scenekit::Mesh> pragma::scenekit::Mesh::GetHandle() { return util::WeakHandle<pragma::scenekit::Mesh> {shared_from_this()}; }
+pragma::util::WeakHandle<pragma::scenekit::Mesh> pragma::scenekit::Mesh::GetHandle() { return pragma::util::WeakHandle<Mesh> {shared_from_this()}; }
 
 enum class SerializationFlags : uint8_t { None = 0u, UseAlphas = 1u, UseSubdivFaces = UseAlphas << 1u };
-namespace umath::scoped_enum::bitwise {
+namespace pragma::math::scoped_enum::bitwise {
 	template<>
 	struct enable_bitwise_operators<SerializationFlags> : std::true_type {};
 }
 void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const std::function<std::optional<uint32_t>(const Shader &)> &fGetShaderIndex) const
 {
-	auto numVerts = umath::min(m_numVerts, m_verts.size());
-	auto numTris = umath::min(m_numTris, m_triangles.size() / 3);
+	auto numVerts = pragma::math::min(m_numVerts, m_verts.size());
+	auto numTris = pragma::math::min(m_numTris, m_triangles.size() / 3);
 	data["name"] = GetName();
 	data["flags"] = udm::flags_to_string(m_flags);
 	data["numVerts"] = numVerts;
@@ -98,10 +98,10 @@ void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const s
 	data.AddArray<Vector2>("perVertexUvs", m_perVertexUvs, udm::ArrayType::Compressed);
 	data.AddArray<Vector4>("perVertexTangents", m_perVertexTangents, udm::ArrayType::Compressed);
 	data.AddArray<float>("perVertexTangentSigns", m_perVertexTangentSigns, udm::ArrayType::Compressed);
-	if(umath::is_flag_set(flags, SerializationFlags::UseAlphas))
+	if(pragma::math::is_flag_set(flags, SerializationFlags::UseAlphas))
 		data.AddArray<float>("perVertexAlphas", m_perVertexAlphas, udm::ArrayType::Compressed);
 
-	/*if(umath::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
+	/*if(pragma::math::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
 	{
 		auto numSubdFaces = m_numSubdFaces;
 		assert(numSubdFaces == m_numVerts);
@@ -125,7 +125,7 @@ void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const s
 	data.AddArray<int32_t>("shaders", m_shader, udm::ArrayType::Compressed);
 	data.AddArray<uint8_t>("smooth", m_smooth, udm::ArrayType::Compressed);
 
-	//if(umath::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
+	//if(pragma::math::is_flag_set(flags,SerializationFlags::UseSubdivFaces))
 	//	dsOut->Write(reinterpret_cast<const uint8_t*>(m_mesh.get_triangle_patch().data()),numTris *sizeof(m_mesh.get_triangle_patch()[0]));
 
 	data.AddArray<Vector3>("vertexNormals", m_vertexNormals, udm::ArrayType::Compressed);
@@ -134,7 +134,7 @@ void pragma::scenekit::Mesh::Serialize(udm::LinkedPropertyWrapper &data, const s
 	data.AddArray<Vector3>("uvTangents", m_uvTangents, udm::ArrayType::Compressed);
 	data.AddArray<float>("uvTangentSigns", m_uvTangentSigns, udm::ArrayType::Compressed);
 
-	if(umath::is_flag_set(flags, SerializationFlags::UseAlphas))
+	if(pragma::math::is_flag_set(flags, SerializationFlags::UseAlphas))
 		data.AddArray<float>("alphas", *m_alphas, udm::ArrayType::Compressed);
 
 	std::vector<uint32_t> subMeshShaders;
@@ -199,7 +199,7 @@ void pragma::scenekit::Mesh::Deserialize(udm::LinkedPropertyWrapper &data, const
 	data["uvTangents"](m_uvTangents);
 	data["uvTangentSigns"](m_uvTangentSigns);
 	if(data["alphas"]) {
-		m_alphas = pragma::scenekit::STFloatArray {};
+		m_alphas = STFloatArray {};
 		data["alphas"](*m_alphas);
 	}
 
@@ -324,8 +324,8 @@ std::vector<pragma::scenekit::PShader> &pragma::scenekit::Mesh::GetSubMeshShader
 uint64_t pragma::scenekit::Mesh::GetVertexCount() const { return m_numVerts; }
 uint64_t pragma::scenekit::Mesh::GetTriangleCount() const { return m_numTris; }
 uint32_t pragma::scenekit::Mesh::GetVertexOffset() const { return m_verts.size(); }
-bool pragma::scenekit::Mesh::HasAlphas() const { return umath::is_flag_set(m_flags, Flags::HasAlphas); }
-bool pragma::scenekit::Mesh::HasWrinkles() const { return umath::is_flag_set(m_flags, Flags::HasWrinkles); }
+bool pragma::scenekit::Mesh::HasAlphas() const { return math::is_flag_set(m_flags, Flags::HasAlphas); }
+bool pragma::scenekit::Mesh::HasWrinkles() const { return math::is_flag_set(m_flags, Flags::HasWrinkles); }
 
 bool pragma::scenekit::Mesh::AddVertex(const Vector3 &pos, const Vector3 &n, const Vector4 &t, const Vector2 &uv)
 {
@@ -365,7 +365,7 @@ bool pragma::scenekit::Mesh::AddTriangle(uint32_t idx0, uint32_t idx1, uint32_t 
 {
 	// Winding order has to be inverted for cycles
 #ifndef ENABLE_TEST_AMBIENT_OCCLUSION
-	umath::swap(idx1, idx2);
+	pragma::math::swap(idx1, idx2);
 #endif
 
 	auto numCurMeshTriIndices = m_triangles.size();

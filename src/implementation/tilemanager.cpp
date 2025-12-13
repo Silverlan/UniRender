@@ -10,7 +10,7 @@ import pragma.ocio;
 import :tile_manager;
 
 bool pragma::scenekit::TileManager::TileData::IsFloatData() const { return !IsHDRData(); }
-bool pragma::scenekit::TileManager::TileData::IsHDRData() const { return umath::is_flag_set(flags, Flags::HDRData); }
+bool pragma::scenekit::TileManager::TileData::IsHDRData() const { return math::is_flag_set(flags, Flags::HDRData); }
 
 pragma::scenekit::TileManager::~TileManager() { StopAndWait(); }
 
@@ -45,7 +45,7 @@ void pragma::scenekit::TileManager::SetExposure(float exposure) { m_exposure = e
 void pragma::scenekit::TileManager::SetGamma(float gamma) { m_gamma = gamma; }
 void pragma::scenekit::TileManager::SetUseFloatData(bool b) { m_useFloatData = b; }
 
-void pragma::scenekit::TileManager::Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure, float gamma, pragma::ocio::ColorProcessor *optColorProcessor)
+void pragma::scenekit::TileManager::Initialize(uint32_t w, uint32_t h, uint32_t wTile, uint32_t hTile, bool cpuDevice, float exposure, float gamma, ocio::ColorProcessor *optColorProcessor)
 {
 	m_cpuDevice = cpuDevice;
 	if(optColorProcessor)
@@ -55,7 +55,7 @@ void pragma::scenekit::TileManager::Initialize(uint32_t w, uint32_t h, uint32_t 
 	m_numTiles = numTiles;
 	m_inputTiles.resize(numTiles);
 	m_completedTiles.resize(numTiles);
-	m_progressiveImage = uimg::ImageBuffer::Create(w, h, uimg::Format::RGBA_FLOAT);
+	m_progressiveImage = image::ImageBuffer::Create(w, h, image::Format::RGBA_FLOAT);
 	m_tileSize = {wTile, hTile};
 	m_exposure = exposure;
 	m_gamma = gamma;
@@ -97,7 +97,7 @@ void pragma::scenekit::TileManager::Reload(bool waitForCompletion)
 
 		auto w = m_progressiveImage->GetWidth();
 		auto h = m_progressiveImage->GetHeight();
-		m_progressiveImage = uimg::ImageBuffer::Create(w,h,uimg::Format::RGBA16);
+		m_progressiveImage = image::ImageBuffer::Create(w,h,image::Format::RGBA16);
 		m_progressiveImage->Clear(colors::Red);
 	}*/
 
@@ -178,10 +178,10 @@ void pragma::scenekit::TileManager::Reload(bool waitForCompletion)
 		endThread:;
 		});
 		// Thread priority is excessively high due to Cycles, so we'll reset it to normal here
-		// util::set_thread_priority(m_ppThreadPool.get_thread(i),util::ThreadPriority::Normal);
+		// pragma::util::set_thread_priority(m_ppThreadPool.get_thread(i),util::ThreadPriority::Normal);
 	}
 }
-std::shared_ptr<uimg::ImageBuffer> pragma::scenekit::TileManager::UpdateFinalImage()
+std::shared_ptr<pragma::image::ImageBuffer> pragma::scenekit::TileManager::UpdateFinalImage()
 {
 	StopAndWait();
 	constexpr auto verify = false;
@@ -248,24 +248,24 @@ int32_t pragma::scenekit::TileManager::GetCurrentTileSampleCount(uint32_t tileIn
 
 void pragma::scenekit::TileManager::InitializeTileData(TileData &data)
 {
-	if(umath::is_flag_set(data.flags, TileData::Flags::Initialized))
+	if(math::is_flag_set(data.flags, TileData::Flags::Initialized))
 		return;
-	umath::set_flag(data.flags, TileData::Flags::Initialized);
+	math::set_flag(data.flags, TileData::Flags::Initialized);
 	if(m_flipHorizontally)
 		data.x = m_progressiveImage->GetWidth() - data.x - data.w;
 	if(m_flipVertically)
 		data.y = m_progressiveImage->GetHeight() - data.y - data.h;
 
-	auto img = uimg::ImageBuffer::Create(data.data.data(), data.w, data.h, uimg::Format::RGBA_FLOAT);
+	auto img = image::ImageBuffer::Create(data.data.data(), data.w, data.h, image::Format::RGBA_FLOAT);
 	img->Flip(m_flipHorizontally, m_flipVertically);
-	img->ClearAlpha(uimg::ImageBuffer::FULLY_OPAQUE);
+	img->ClearAlpha(image::ImageBuffer::FULLY_OPAQUE);
 }
 
 void pragma::scenekit::TileManager::ApplyPostProcessingForProgressiveTile(TileData &data)
 {
 	if(!m_colorTransformProcessor)
 		return;
-	auto img = uimg::ImageBuffer::Create(data.data.data(), data.w, data.h, data.IsFloatData() ? uimg::Format::RGBA_FLOAT : uimg::Format::RGBA_HDR);
+	auto img = image::ImageBuffer::Create(data.data.data(), data.w, data.h, data.IsFloatData() ? image::Format::RGBA_FLOAT : image::Format::RGBA_HDR);
 	std::string err;
 	auto result = m_colorTransformProcessor->Apply(*img, err);
 	if(result == false)

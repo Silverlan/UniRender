@@ -88,7 +88,7 @@ void pragma::scenekit::Scene::CreateInfo::Deserialize(udm::LinkedPropertyWrapper
 
 void pragma::scenekit::Scene::PrintLogInfo()
 {
-	auto &logHandler = pragma::scenekit::get_log_handler();
+	auto &logHandler = scenekit::get_log_handler();
 	if(logHandler == nullptr)
 		return;
 	std::stringstream ss;
@@ -187,9 +187,9 @@ void pragma::scenekit::Scene::PrintLogInfo()
 	logHandler(ss.str());
 }
 
-bool pragma::scenekit::Scene::IsLightmapRenderMode(RenderMode renderMode) { return umath::to_integral(renderMode) >= umath::to_integral(RenderMode::LightmapBakingStart) && umath::to_integral(renderMode) <= umath::to_integral(RenderMode::LightmapBakingEnd); }
+bool pragma::scenekit::Scene::IsLightmapRenderMode(RenderMode renderMode) { return math::to_integral(renderMode) >= math::to_integral(RenderMode::LightmapBakingStart) && math::to_integral(renderMode) <= math::to_integral(RenderMode::LightmapBakingEnd); }
 
-bool pragma::scenekit::Scene::IsBakingRenderMode(RenderMode renderMode) { return umath::to_integral(renderMode) >= umath::to_integral(RenderMode::BakingStart) && umath::to_integral(renderMode) <= umath::to_integral(RenderMode::BakingEnd); }
+bool pragma::scenekit::Scene::IsBakingRenderMode(RenderMode renderMode) { return math::to_integral(renderMode) >= math::to_integral(RenderMode::BakingStart) && math::to_integral(renderMode) <= math::to_integral(RenderMode::BakingEnd); }
 
 bool pragma::scenekit::Scene::IsRenderSceneMode(RenderMode renderMode) { return !IsBakingRenderMode(renderMode); }
 
@@ -221,7 +221,7 @@ std::shared_ptr<pragma::scenekit::Scene> pragma::scenekit::Scene::Create(NodeMan
 
 	scene->m_camera = Camera::Create(*scene);
 	scene->m_createInfo = createInfo;
-	umath::set_flag(scene->m_stateFlags, StateFlags::OutputResultWithHDRColors, createInfo.hdrOutput);
+	math::set_flag(scene->m_stateFlags, StateFlags::OutputResultWithHDRColors, createInfo.hdrOutput);
 	return scene;
 }
 
@@ -234,9 +234,9 @@ pragma::scenekit::Camera &pragma::scenekit::Scene::GetCamera() { return *m_camer
 bool pragma::scenekit::Scene::IsValidTexture(const std::string &filePath) const
 {
 	std::string ext;
-	if(ufile::get_extension(filePath, &ext) == false || ustring::compare<std::string>(ext, "dds", false) == false)
+	if(ufile::get_extension(filePath, &ext) == false || string::compare<std::string>(ext, "dds", false) == false)
 		return false;
-	return FileManager::Exists(filePath, fsys::SearchFlags::Local);
+	return fs::exists(filePath, fs::SearchFlags::Local);
 }
 
 std::optional<std::string> pragma::scenekit::Scene::GetAbsSkyPath(const std::string &skyTex)
@@ -244,7 +244,7 @@ std::optional<std::string> pragma::scenekit::Scene::GetAbsSkyPath(const std::str
 	if(skyTex.empty())
 		return {};
 	std::string absPath = util::FilePath("materials", skyTex).GetString();
-	if(!filemanager::find_local_path(absPath, absPath))
+	if(!fs::find_local_path(absPath, absPath))
 		return {};
 	return absPath;
 }
@@ -286,7 +286,7 @@ static void shrink_area_to_fit(const float *inOutImgData, uint32_t imgWidth, uin
 		--w;
 }
 
-void pragma::scenekit::Scene::DenoiseHDRImageArea(uimg::ImageBuffer &imgBuffer, uint32_t imgWidth, uint32_t imgHeight, uint32_t xOffset, uint32_t yOffset, uint32_t w, uint32_t h) const
+void pragma::scenekit::Scene::DenoiseHDRImageArea(image::ImageBuffer &imgBuffer, uint32_t imgWidth, uint32_t imgHeight, uint32_t xOffset, uint32_t yOffset, uint32_t w, uint32_t h) const
 {
 	// In some cases the borders may not contain any image data (i.e. fully transparent) if the pixels are not actually
 	// being used by any geometry. Since the denoiser does not know transparency, we have to shrink the image area to exclude the
@@ -355,7 +355,7 @@ void pragma::scenekit::Scene::DenoiseHDRImageArea(uimg::ImageBuffer &imgBuffer, 
 
 	denoise::ImageData denoiseImgData {};
 	denoiseImgData.data = reinterpret_cast<uint8_t *>(imgAreaData.data());
-	denoiseImgData.format = uimg::Format::RGB32;
+	denoiseImgData.format = image::Format::RGB32;
 
 	denoise::ImageInputs inputs {};
 	inputs.beautyImage = denoiseImgData;
@@ -399,8 +399,8 @@ float pragma::scenekit::Scene::GetGamma() const { return m_createInfo.hdrOutput 
 void pragma::scenekit::Scene::AddActorToActorMap(std::unordered_map<size_t, WorldObject *> &map, WorldObject &obj) { map[util::get_uuid_hash(obj.GetUuid())] = &obj; }
 std::unordered_map<size_t, pragma::scenekit::WorldObject *> pragma::scenekit::Scene::BuildActorMap() const
 {
-	std::unordered_map<size_t, pragma::scenekit::WorldObject *> map;
-	auto addActor = [&map](pragma::scenekit::WorldObject &obj) { map[util::get_uuid_hash(obj.GetUuid())] = &obj; };
+	std::unordered_map<size_t, WorldObject *> map;
+	auto addActor = [&map](WorldObject &obj) { map[util::get_uuid_hash(obj.GetUuid())] = &obj; };
 	uint32_t numActors = m_lights.size() + 1u /* camera */;
 	for(auto &mdlCache : m_mdlCaches) {
 		for(auto &chunk : mdlCache->GetChunks())
@@ -463,7 +463,7 @@ bool pragma::scenekit::Scene::IsVerbose() { return g_verbose; }
 void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string &rootDir, const SerializationData &serializationData) const
 {
 	auto modelCachePath = util::DirPath(rootDir, "cache").GetString();
-	filemanager::create_path(modelCachePath);
+	fs::create_path(modelCachePath);
 
 	outData.SetAssetType(PRT_IDENTIFIER);
 	outData.SetAssetVersion(PRT_VERSION);
@@ -533,9 +533,9 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 			}
 		}
 		auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." + std::string {PRTMC_EXTENSION_BINARY}).GetString();
-		if(filemanager::exists(mdlCachePath) == false) {
-			filemanager::create_path(ufile::get_path_from_filename(mdlCachePath));
-			auto f = filemanager::open_file(mdlCachePath, filemanager::FileMode::Write | filemanager::FileMode::Binary);
+		if(fs::exists(mdlCachePath) == false) {
+			fs::create_path(ufile::get_path_from_filename(mdlCachePath));
+			auto f = fs::open_file(mdlCachePath, fs::FileMode::Write | fs::FileMode::Binary);
 			if(f) {
 				auto data = udm::Data::Create(PRTMC_IDENTIFIER, PRTMC_VERSION);
 				auto assetData = data->GetAssetData();
@@ -543,7 +543,7 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 				auto udmData = assetData.GetData();
 				mdlCache->Serialize(udmData);
 
-				fsys::File fptr {f};
+				fs::File fptr {f};
 				data->Save(fptr);
 			}
 		}
@@ -631,13 +631,13 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 		udmCache["hash"] >> hash;
 		auto baseMdlCachePath = modelCachePath + std::to_string(hash);
 		auto mdlCachePath = baseMdlCachePath + "." + std::string {PRTMC_EXTENSION_BINARY};
-		auto f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		auto f = fs::open_system_file(mdlCachePath, fs::FileMode::Read | fs::FileMode::Binary);
 		if(!f) {
 			mdlCachePath = baseMdlCachePath + "." + std::string {PRTMC_EXTENSION_ASCII};
-			f = filemanager::open_system_file(mdlCachePath, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+			f = fs::open_system_file(mdlCachePath, fs::FileMode::Read | fs::FileMode::Binary);
 		}
 		if(f) {
-			auto fptr = std::make_unique<fsys::File>(f);
+			auto fptr = std::make_unique<fs::File>(f);
 			auto udmData = udm::Data::Load(std::move(fptr));
 			auto assetData = udmData->GetAssetData();
 			auto udmCacheData = assetData.GetData();
@@ -691,7 +691,7 @@ Vector2i pragma::scenekit::Scene::GetResolution() const { return {m_camera->GetW
 std::string pragma::scenekit::Scene::ToRelativePath(const std::string &absPath)
 {
 	util::Path path {absPath};
-	path.MakeRelative(FileManager::GetRootPath());
+	path.MakeRelative(fs::get_root_path());
 	while(path.GetFront() != "materials")
 		path.PopFront();
 	return path.GetString();
@@ -700,7 +700,7 @@ std::string pragma::scenekit::Scene::ToRelativePath(const std::string &absPath)
 std::string pragma::scenekit::Scene::ToAbsolutePath(const std::string &relPath)
 {
 	std::string rpath;
-	auto result = FileManager::FindAbsolutePath(relPath, rpath);
+	auto result = fs::find_absolute_path(relPath, rpath);
 	if(IsVerbose()) {
 		if(result)
 			std::cout << "Resolved relative path '" << relPath << "' to absolute path '" << rpath << "'..." << std::endl;
@@ -709,7 +709,7 @@ std::string pragma::scenekit::Scene::ToAbsolutePath(const std::string &relPath)
 	}
 	if(result == false)
 		std::cout << "WARNING: Unable to locate file '" << relPath << "': File not found!" << std::endl;
-	return result ? rpath : (FileManager::GetRootPath() + relPath);
+	return result ? rpath : (fs::get_root_path() + relPath);
 }
 
 void pragma::scenekit::Scene::AddModelsFromCache(const ModelCache &cache)
@@ -776,6 +776,6 @@ std::optional<pragma::scenekit::PassType> pragma::scenekit::get_main_pass_type(S
 	case Scene::RenderMode::Uv:
 		return PassType::Uv;
 	}
-	static_assert(umath::to_integral(Scene::RenderMode::Count) == 31, "Update this implementation when new render modes are added!");
+	static_assert(math::to_integral(Scene::RenderMode::Count) == 31, "Update this implementation when new render modes are added!");
 	return {};
 }

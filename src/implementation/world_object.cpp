@@ -18,8 +18,8 @@ const Quat &pragma::scenekit::WorldObject::GetRotation() const { return m_pose.G
 void pragma::scenekit::WorldObject::SetScale(const Vector3 &scale) { m_pose.SetScale(scale); }
 const Vector3 &pragma::scenekit::WorldObject::GetScale() const { return m_pose.GetScale(); }
 
-umath::ScaledTransform &pragma::scenekit::WorldObject::GetPose() { return m_pose; }
-const umath::ScaledTransform &pragma::scenekit::WorldObject::GetPose() const { return const_cast<WorldObject *>(this)->GetPose(); }
+pragma::math::ScaledTransform &pragma::scenekit::WorldObject::GetPose() { return m_pose; }
+const pragma::math::ScaledTransform &pragma::scenekit::WorldObject::GetPose() const { return const_cast<WorldObject *>(this)->GetPose(); }
 
 void pragma::scenekit::WorldObject::Serialize(udm::LinkedPropertyWrapper &data) const
 {

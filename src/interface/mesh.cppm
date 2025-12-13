@@ -108,7 +108,7 @@ export namespace pragma::scenekit {
 
 		std::vector<uint32_t> m_originShaderIndexTable;
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::Mesh::Flags)

@@ -9,7 +9,7 @@ import pragma.ocio;
 
 import :color_management;
 
-bool pragma::scenekit::apply_color_transform(uimg::ImageBuffer &imgBuf, const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure, float gamma)
+bool pragma::scenekit::apply_color_transform(image::ImageBuffer &imgBuf, const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure, float gamma)
 {
 	auto processor = create_color_transform_processor(createInfo, outErr, exposure, gamma);
 	if(!processor)
@@ -22,10 +22,10 @@ std::shared_ptr<pragma::ocio::ColorProcessor> pragma::scenekit::create_color_tra
 	ocioConfigLocation += "modules/open_color_io/configs/";
 	ocioConfigLocation.Canonicalize();
 
-	pragma::ocio::ColorProcessor::CreateInfo ocioCreateInfo {};
+	ocio::ColorProcessor::CreateInfo ocioCreateInfo {};
 	ocioCreateInfo.configLocation = ocioConfigLocation.GetString();
 	ocioCreateInfo.config = createInfo.config;
 	ocioCreateInfo.lookName = createInfo.lookName;
-	ocioCreateInfo.bitDepth = static_cast<pragma::ocio::ColorProcessor::CreateInfo::BitDepth>(createInfo.bitDepth);
-	return pragma::ocio::ColorProcessor::Create(ocioCreateInfo, outErr, exposure, gamma);
+	ocioCreateInfo.bitDepth = static_cast<ocio::ColorProcessor::CreateInfo::BitDepth>(createInfo.bitDepth);
+	return ocio::ColorProcessor::Create(ocioCreateInfo, outErr, exposure, gamma);
 }

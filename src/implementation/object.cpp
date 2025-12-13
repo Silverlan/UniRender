@@ -48,15 +48,15 @@ void pragma::scenekit::Object::Deserialize(udm::LinkedPropertyWrapper &data, con
 	m_mesh = mesh;
 }
 
-util::WeakHandle<pragma::scenekit::Object> pragma::scenekit::Object::GetHandle() { return util::WeakHandle<pragma::scenekit::Object> {shared_from_this()}; }
+pragma::util::WeakHandle<pragma::scenekit::Object> pragma::scenekit::Object::GetHandle() { return pragma::util::WeakHandle<Object> {shared_from_this()}; }
 
 void pragma::scenekit::Object::DoFinalize(Scene &scene) { m_mesh->Finalize(scene); }
 
 const pragma::scenekit::Mesh &pragma::scenekit::Object::GetMesh() const { return const_cast<Object *>(this)->GetMesh(); }
 pragma::scenekit::Mesh &pragma::scenekit::Object::GetMesh() { return *m_mesh; }
 
-const umath::Transform &pragma::scenekit::Object::GetMotionPose() const { return m_motionPose; }
-void pragma::scenekit::Object::SetMotionPose(const umath::Transform &pose) { m_motionPose = pose; }
+const pragma::math::Transform &pragma::scenekit::Object::GetMotionPose() const { return m_motionPose; }
+void pragma::scenekit::Object::SetMotionPose(const math::Transform &pose) { m_motionPose = pose; }
 
 void pragma::scenekit::Object::SetName(const std::string &name) { m_name = name; }
 const std::string &pragma::scenekit::Object::GetName() const { return m_name; }

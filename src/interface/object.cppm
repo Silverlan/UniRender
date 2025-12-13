@@ -26,8 +26,8 @@ export namespace pragma::scenekit {
 		util::WeakHandle<Object> GetHandle();
 		virtual void DoFinalize(Scene &scene) override;
 
-		void SetSubdivisionEnabled(bool enabled) { umath::set_flag(m_flags, Flags::EnableSubdivision, enabled); }
-		bool IsSubdivisionEnabled() const { return umath::is_flag_set(m_flags, Flags::EnableSubdivision); }
+		void SetSubdivisionEnabled(bool enabled) { math::set_flag(m_flags, Flags::EnableSubdivision, enabled); }
+		bool IsSubdivisionEnabled() const { return math::is_flag_set(m_flags, Flags::EnableSubdivision); }
 
 		const Mesh &GetMesh() const;
 		Mesh &GetMesh();
@@ -36,8 +36,8 @@ export namespace pragma::scenekit {
 		void Serialize(udm::LinkedPropertyWrapper &data, const std::unordered_map<const Mesh *, size_t> &meshToIndexTable) const;
 		void Deserialize(udm::LinkedPropertyWrapper &data, const std::function<PMesh(uint32_t)> &fGetMesh);
 
-		const umath::Transform &GetMotionPose() const;
-		void SetMotionPose(const umath::Transform &pose);
+		const math::Transform &GetMotionPose() const;
+		void SetMotionPose(const math::Transform &pose);
 
 		void SetName(const std::string &name);
 		const std::string &GetName() const;
@@ -49,9 +49,9 @@ export namespace pragma::scenekit {
 		std::string m_name;
 
 		// TODO
-		umath::Transform m_motionPose = {};
+		math::Transform m_motionPose = {};
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::Object::Flags)

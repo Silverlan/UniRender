@@ -23,11 +23,11 @@ pragma::scenekit::PLight pragma::scenekit::Light::Create(udm::LinkedPropertyWrap
 
 pragma::scenekit::Light::Light() : WorldObject {} {}
 
-util::WeakHandle<pragma::scenekit::Light> pragma::scenekit::Light::GetHandle() { return util::WeakHandle<pragma::scenekit::Light> {shared_from_this()}; }
+pragma::util::WeakHandle<pragma::scenekit::Light> pragma::scenekit::Light::GetHandle() { return pragma::util::WeakHandle<Light> {shared_from_this()}; }
 
 void pragma::scenekit::Light::SetType(Type type) { m_type = type; }
 
-void pragma::scenekit::Light::SetConeAngle(umath::Degree outerAngle, umath::Fraction blendFraction)
+void pragma::scenekit::Light::SetConeAngle(math::Degree outerAngle, math::Fraction blendFraction)
 {
 	m_blendFraction = blendFraction;
 	m_spotOuterAngle = outerAngle;

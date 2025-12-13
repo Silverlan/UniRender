@@ -64,17 +64,17 @@ pragma::scenekit::Socket pragma::scenekit::Socket::operator>(float f) const { re
 pragma::scenekit::Socket pragma::scenekit::Socket::operator>=(float f) const { return operator>=(Socket {f}); }
 pragma::scenekit::GroupNodeDesc *pragma::scenekit::Socket::GetCommonGroupNode(const Socket &other) const
 {
-	pragma::scenekit::GroupNodeDesc *target = nullptr;
+	GroupNodeDesc *target = nullptr;
 	// Note: We have to handle a special case if either socket is an input socket.
 	// This is only allowed if the input socket belongs to a group node and the operation was applied within
 	// that group node, in which case we have to add the op node to the group node instead of the parent node.
 	if(!IsConcreteValue() && !IsOutputSocket()) {
 		auto node = m_nodeSocketRef.node.lock();
-		target = node && node->IsGroupNode() ? static_cast<pragma::scenekit::GroupNodeDesc *>(node.get()) : nullptr;
+		target = node && node->IsGroupNode() ? static_cast<GroupNodeDesc *>(node.get()) : nullptr;
 	}
 	else if(!other.IsConcreteValue() && !other.IsOutputSocket()) {
 		auto node = other.m_nodeSocketRef.node.lock();
-		target = node && node->IsGroupNode() ? static_cast<pragma::scenekit::GroupNodeDesc *>(node.get()) : nullptr;
+		target = node && node->IsGroupNode() ? static_cast<GroupNodeDesc *>(node.get()) : nullptr;
 	}
 	else {
 		auto &ref = IsConcreteValue() ? other.m_nodeSocketRef : m_nodeSocketRef;
@@ -166,27 +166,27 @@ pragma::scenekit::Socket pragma::scenekit::Socket::ApplyOperator(const Socket &o
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator+(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Add, pragma::scenekit::nodes::vector_math::MathType::Add, [](float a, float b) -> float { return a + b; });
+	return ApplyOperator(socket, nodes::math::MathType::Add, nodes::vector_math::MathType::Add, [](float a, float b) -> float { return a + b; });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator-(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Subtract, pragma::scenekit::nodes::vector_math::MathType::Subtract, [](float a, float b) -> float { return a - b; });
+	return ApplyOperator(socket, nodes::math::MathType::Subtract, nodes::vector_math::MathType::Subtract, [](float a, float b) -> float { return a - b; });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator*(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Multiply, pragma::scenekit::nodes::vector_math::MathType::Multiply, [](float a, float b) -> float { return a * b; });
+	return ApplyOperator(socket, nodes::math::MathType::Multiply, nodes::vector_math::MathType::Multiply, [](float a, float b) -> float { return a * b; });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator/(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Divide, pragma::scenekit::nodes::vector_math::MathType::Divide, [](float a, float b) -> float { return a / b; });
+	return ApplyOperator(socket, nodes::math::MathType::Divide, nodes::vector_math::MathType::Divide, [](float a, float b) -> float { return a / b; });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator%(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Modulo, pragma::scenekit::nodes::vector_math::MathType::Modulo, [](float a, float b) -> float { return fmodf(a, b); });
+	return ApplyOperator(socket, nodes::math::MathType::Modulo, nodes::vector_math::MathType::Modulo, [](float a, float b) -> float { return fmodf(a, b); });
 }
 pragma::scenekit::Socket pragma::scenekit::Socket::operator^(const Socket &socket) const
 {
-	return ApplyOperator(socket, pragma::scenekit::nodes::math::MathType::Power, {}, [](float a, float b) -> float { return powf(a, b); });
+	return ApplyOperator(socket, nodes::math::MathType::Power, {}, [](float a, float b) -> float { return powf(a, b); });
 }
 
 constexpr float COMPARISON_EPSILON = 0.00001f;
@@ -244,7 +244,7 @@ void pragma::scenekit::Socket::Link(const Socket &other)
 		// Unreachable
 		throw Exception {"Attempted to link two non-concrete sockets that don't belong to any socket! This should never happen!"};
 	}
-	pragma::scenekit::GroupNodeDesc *node = nullptr;
+	GroupNodeDesc *node = nullptr;
 	if(node0 && !node1)
 		node = node0->GetParent();
 	else if(!node0 && node1)
@@ -253,7 +253,7 @@ void pragma::scenekit::Socket::Link(const Socket &other)
 		// Special case where an input socket in a group node is linked directly to
 		// one of its output sockets. This is the only case where a node can link to itself!
 		assert(node0->IsGroupNode());
-		node = node0->IsGroupNode() ? static_cast<pragma::scenekit::GroupNodeDesc *>(node0) : nullptr;
+		node = node0->IsGroupNode() ? static_cast<GroupNodeDesc *>(node0) : nullptr;
 	}
 	else if(node0->GetParent() == node1->GetParent()) {
 		// Different nodes linked together; only allowed if they share the same parent
@@ -276,56 +276,56 @@ std::string pragma::scenekit::Socket::ToString() const
 			str += "NULL";
 		else {
 			switch(m_value->type) {
-			case pragma::scenekit::SocketType::Bool:
-				str += std::to_string(*static_cast<pragma::scenekit::STBool *>(m_value->value.get()));
+			case SocketType::Bool:
+				str += std::to_string(*static_cast<STBool *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Float:
-				str += std::to_string(*static_cast<pragma::scenekit::STFloat *>(m_value->value.get()));
+			case SocketType::Float:
+				str += std::to_string(*static_cast<STFloat *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Int:
-				str += std::to_string(*static_cast<pragma::scenekit::STInt *>(m_value->value.get()));
+			case SocketType::Int:
+				str += std::to_string(*static_cast<STInt *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::UInt:
-				str += std::to_string(*static_cast<pragma::scenekit::STUInt *>(m_value->value.get()));
+			case SocketType::UInt:
+				str += std::to_string(*static_cast<STUInt *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Color:
-				str += uvec::to_string(static_cast<pragma::scenekit::STColor *>(m_value->value.get()));
+			case SocketType::Color:
+				str += uvec::to_string(static_cast<STColor *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Vector:
-				str += uvec::to_string(static_cast<pragma::scenekit::STVector *>(m_value->value.get()));
+			case SocketType::Vector:
+				str += uvec::to_string(static_cast<STVector *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Point:
-				str += uvec::to_string(static_cast<pragma::scenekit::STPoint *>(m_value->value.get()));
+			case SocketType::Point:
+				str += uvec::to_string(static_cast<STPoint *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Normal:
-				str += uvec::to_string(static_cast<pragma::scenekit::STNormal *>(m_value->value.get()));
+			case SocketType::Normal:
+				str += uvec::to_string(static_cast<STNormal *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Point2:
+			case SocketType::Point2:
 				{
 					std::stringstream ss;
-					ss << *static_cast<pragma::scenekit::STPoint2 *>(m_value->value.get());
+					ss << *static_cast<STPoint2 *>(m_value->value.get());
 					str += ss.str();
 					break;
 				}
-			case pragma::scenekit::SocketType::String:
-				str += *static_cast<pragma::scenekit::STString *>(m_value->value.get());
+			case SocketType::String:
+				str += *static_cast<STString *>(m_value->value.get());
 				break;
-			case pragma::scenekit::SocketType::Enum:
-				str += std::to_string(*static_cast<pragma::scenekit::STEnum *>(m_value->value.get()));
+			case SocketType::Enum:
+				str += std::to_string(*static_cast<STEnum *>(m_value->value.get()));
 				break;
-			case pragma::scenekit::SocketType::Transform:
+			case SocketType::Transform:
 				{
 					std::stringstream ss;
-					auto &t = *static_cast<pragma::scenekit::STTransform *>(m_value->value.get());
+					auto &t = *static_cast<STTransform *>(m_value->value.get());
 					ss << t[0][0] << ',' << t[0][1] << ',' << t[0][2] << ',' << t[1][0] << ',' << t[1][1] << ',' << t[1][2] << ',' << t[2][0] << ',' << t[2][1] << ',' << t[2][2] << ',' << t[3][0] << ',' << t[3][1] << ',' << t[3][2];
 					str += ss.str();
 					break;
 				}
-			case pragma::scenekit::SocketType::FloatArray:
+			case SocketType::FloatArray:
 				{
 					str += '{';
 					auto first = true;
-					for(auto &v : *static_cast<pragma::scenekit::STFloatArray *>(m_value->value.get())) {
+					for(auto &v : *static_cast<STFloatArray *>(m_value->value.get())) {
 						if(first)
 							first = false;
 						else
@@ -335,11 +335,11 @@ std::string pragma::scenekit::Socket::ToString() const
 					str += '}';
 					break;
 				}
-			case pragma::scenekit::SocketType::ColorArray:
+			case SocketType::ColorArray:
 				{
 					str += '{';
 					auto first = true;
-					for(auto &v : *static_cast<pragma::scenekit::STColorArray *>(m_value->value.get())) {
+					for(auto &v : *static_cast<STColorArray *>(m_value->value.get())) {
 						if(first)
 							first = false;
 						else
@@ -350,7 +350,7 @@ std::string pragma::scenekit::Socket::ToString() const
 					break;
 				}
 			}
-			static_assert(umath::to_integral(pragma::scenekit::SocketType::Count) == 16);
+			static_assert(math::to_integral(SocketType::Count) == 16);
 		}
 		str += "]";
 	}

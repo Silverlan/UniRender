@@ -24,18 +24,18 @@ export namespace pragma::scenekit {
 		void SetScale(const Vector3 &scale);
 		const Vector3 &GetScale() const;
 
-		umath::ScaledTransform &GetPose();
-		const umath::ScaledTransform &GetPose() const;
+		pragma::math::ScaledTransform &GetPose();
+		const pragma::math::ScaledTransform &GetPose() const;
 
-		void SetUuid(const util::Uuid &uuid) { m_uuid = uuid; }
-		const util::Uuid &GetUuid() const { return m_uuid; }
+		void SetUuid(const pragma::util::Uuid &uuid) { m_uuid = uuid; }
+		const pragma::util::Uuid &GetUuid() const { return m_uuid; }
 
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
 		void Deserialize(udm::LinkedPropertyWrapper &data);
 	  protected:
 		WorldObject();
 	  private:
-		umath::ScaledTransform m_pose = {};
-		util::Uuid m_uuid = {0, 0};
+		pragma::math::ScaledTransform m_pose = {};
+		pragma::util::Uuid m_uuid = {0, 0};
 	};
 };

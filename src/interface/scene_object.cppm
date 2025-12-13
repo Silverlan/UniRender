@@ -25,7 +25,7 @@ export namespace pragma::scenekit {
 		uint32_t GetId() const { return m_id; }
 		void SetId(uint32_t id) { m_id = id; }
 	  protected:
-		friend pragma::scenekit::Scene;
+		friend Scene;
 		virtual void DoFinalize(Scene &scene);
 	  private:
 		bool m_bFinalized = false;

@@ -16,6 +16,6 @@ export namespace pragma::scenekit {
 		std::optional<std::string> lookName {};
 		BitDepth bitDepth = BitDepth::Float32;
 	};
-	DLLRTUTIL std::shared_ptr<pragma::ocio::ColorProcessor> create_color_transform_processor(const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure = 0.f, float gamma = 2.2f);
-	DLLRTUTIL bool apply_color_transform(uimg::ImageBuffer &imgBuf, const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure = 0.f, float gamma = 2.2f);
+	DLLRTUTIL std::shared_ptr<ocio::ColorProcessor> create_color_transform_processor(const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure = 0.f, float gamma = 2.2f);
+	DLLRTUTIL bool apply_color_transform(image::ImageBuffer &imgBuf, const ColorTransformProcessorCreateInfo &createInfo, std::string &outErr, float exposure = 0.f, float gamma = 2.2f);
 };

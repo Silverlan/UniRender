@@ -68,7 +68,7 @@ pragma::scenekit::NodeIndex pragma::scenekit::NodeDesc::GetIndex() const
 	if(parent == nullptr)
 		return std::numeric_limits<NodeIndex>::max();
 	auto &nodes = parent->GetChildNodes();
-	auto it = std::find_if(nodes.begin(), nodes.end(), [this](const std::shared_ptr<pragma::scenekit::NodeDesc> &node) { return node.get() == this; });
+	auto it = std::find_if(nodes.begin(), nodes.end(), [this](const std::shared_ptr<NodeDesc> &node) { return node.get() == this; });
 	if(it == nodes.end())
 		throw Exception {"Node references parent which it doesn't belong to"};
 	return it - nodes.begin();
@@ -131,7 +131,7 @@ pragma::scenekit::Socket pragma::scenekit::NodeDesc::GetInputOrProperty(const st
 		return *socket;
 	return GetProperty(name);
 }
-std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::GetPrimaryOutputSocket() const { return m_primaryOutputSocket ? const_cast<NodeDesc *>(this)->FindOutputSocket(*m_primaryOutputSocket) : std::optional<pragma::scenekit::Socket> {}; }
+std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::GetPrimaryOutputSocket() const { return m_primaryOutputSocket ? const_cast<NodeDesc *>(this)->FindOutputSocket(*m_primaryOutputSocket) : std::optional<Socket> {}; }
 pragma::scenekit::NodeSocketDesc *pragma::scenekit::NodeDesc::FindInputSocketDesc(const std::string &name)
 {
 	auto it = m_inputs.find(name);
@@ -175,17 +175,17 @@ void pragma::scenekit::NodeDesc::SetParent(GroupNodeDesc *parent) { m_parent = p
 std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::FindInputSocket(const std::string &name)
 {
 	auto *desc = FindInputSocketDesc(name);
-	return desc ? Socket {*this, name, false} : std::optional<pragma::scenekit::Socket> {};
+	return desc ? Socket {*this, name, false} : std::optional<Socket> {};
 }
 std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::FindOutputSocket(const std::string &name)
 {
 	auto *desc = FindOutputSocketDesc(name);
-	return desc ? Socket {*this, name, true} : std::optional<pragma::scenekit::Socket> {};
+	return desc ? Socket {*this, name, true} : std::optional<Socket> {};
 }
 std::optional<pragma::scenekit::Socket> pragma::scenekit::NodeDesc::FindProperty(const std::string &name)
 {
 	auto *desc = FindPropertyDesc(name);
-	return desc ? Socket {*this, name, false} : std::optional<pragma::scenekit::Socket> {};
+	return desc ? Socket {*this, name, false} : std::optional<Socket> {};
 }
 void pragma::scenekit::NodeDesc::SerializeNodes(udm::LinkedPropertyWrapper &data) const
 {
@@ -261,17 +261,17 @@ pragma::scenekit::NodeDesc *pragma::scenekit::GroupNodeDesc::GetNodeByIndex(Node
 		return nullptr;
 	return m_nodes.at(idx).get();
 }
-std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scenekit::GroupNodeDesc::ResolveGroupNodes(std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator itParent)
+std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scenekit::GroupNodeDesc::ResolveGroupNodes(std::vector<std::shared_ptr<NodeDesc>>::iterator itParent)
 {
 	auto pnode = shared_from_this(); // Unused, but we need to ensure the node stays valid for the remainder of this function
-	auto &children = const_cast<std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>> &>(GetChildNodes());
+	auto &children = const_cast<std::vector<std::shared_ptr<NodeDesc>> &>(GetChildNodes());
 	for(auto it = children.begin(); it != children.end();) {
 		auto &child = *it;
 		if(child->IsGroupNode() == false) {
 			++it;
 			continue;
 		}
-		it = static_cast<pragma::scenekit::GroupNodeDesc &>(*child).ResolveGroupNodes(it);
+		it = static_cast<GroupNodeDesc &>(*child).ResolveGroupNodes(it);
 	}
 
 	auto *parent = GetParent();
@@ -279,7 +279,7 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 		return {};
 
 	auto &links = GetLinks();
-	auto &parentLinks = const_cast<std::vector<pragma::scenekit::NodeDescLink> &>(parent->GetLinks());
+	auto &parentLinks = const_cast<std::vector<NodeDescLink> &>(parent->GetLinks());
 	parentLinks.reserve(links.size() + GetInputs().size() + GetOutputs().size());
 
 	// We need to re-direct the incoming and outgoing links for the group node, which all reside in the parent node.
@@ -290,8 +290,8 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 	// 2) Input socket *does* have an incoming link:
 	// 2.1) Socket is not linked to anything: We don't need to do anything
 	// 2.2) The node the socket is linked to is an output socket of this group node, or an input-socket of a non-group node within this group node: We'll redirect the incoming socket directly to the linked socket. In this case it'll be resolved when we resolve the output sockets.
-	std::unordered_map<pragma::scenekit::Socket, pragma::scenekit::NodeDescLink *> incomingLinks;
-	std::unordered_map<pragma::scenekit::Socket, std::vector<pragma::scenekit::NodeDescLink *>> outgoingLinks;
+	std::unordered_map<Socket, NodeDescLink *> incomingLinks;
+	std::unordered_map<Socket, std::vector<NodeDescLink *>> outgoingLinks;
 	for(auto &link : parentLinks) {
 		if(link.toSocket.GetNode() == this) {
 			assert(!link.toSocket.IsOutputSocket());
@@ -301,31 +301,31 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 			assert(link.fromSocket.IsOutputSocket());
 			auto it = outgoingLinks.find(link.fromSocket);
 			if(it == outgoingLinks.end())
-				it = outgoingLinks.insert(std::make_pair(link.fromSocket, std::vector<pragma::scenekit::NodeDescLink *> {})).first;
+				it = outgoingLinks.insert(std::make_pair(link.fromSocket, std::vector<NodeDescLink *> {})).first;
 			it->second.push_back(&link);
 		}
 	}
 
-	std::unordered_map<pragma::scenekit::Socket, std::vector<pragma::scenekit::NodeDescLink *>> internalLinksFromInputs;
-	std::unordered_map<pragma::scenekit::Socket, pragma::scenekit::NodeDescLink *> internalLinksToOutputs;
+	std::unordered_map<Socket, std::vector<NodeDescLink *>> internalLinksFromInputs;
+	std::unordered_map<Socket, NodeDescLink *> internalLinksToOutputs;
 	for(auto &link : links) {
 		if(link.fromSocket.GetNode() == this) {
 			assert(!link.fromSocket.IsOutputSocket());
 			auto it = internalLinksFromInputs.find(link.fromSocket);
 			if(it == internalLinksFromInputs.end())
-				it = internalLinksFromInputs.insert(std::make_pair(link.fromSocket, std::vector<pragma::scenekit::NodeDescLink *> {})).first;
-			it->second.push_back(const_cast<pragma::scenekit::NodeDescLink *>(&link));
+				it = internalLinksFromInputs.insert(std::make_pair(link.fromSocket, std::vector<NodeDescLink *> {})).first;
+			it->second.push_back(const_cast<NodeDescLink *>(&link));
 		}
 		if(link.toSocket.GetNode() == this) {
 			assert(link.toSocket.IsOutputSocket());
-			internalLinksToOutputs[link.toSocket] = const_cast<pragma::scenekit::NodeDescLink *>(&link);
+			internalLinksToOutputs[link.toSocket] = const_cast<NodeDescLink *>(&link);
 		}
 	}
 
-	std::queue<pragma::scenekit::Socket> clearParentLinks {};
-	std::queue<pragma::scenekit::NodeDescLink> newParentLinks {};
+	std::queue<Socket> clearParentLinks {};
+	std::queue<NodeDescLink> newParentLinks {};
 	auto fResolveInput = [this, &incomingLinks, &parentLinks, &clearParentLinks, &newParentLinks, &internalLinksFromInputs, &internalLinksToOutputs](const std::string &socketName) {
-		pragma::scenekit::Socket socket {*this, socketName, false /* output */};
+		Socket socket {*this, socketName, false /* output */};
 		auto it = incomingLinks.find(socket);
 		if(it == incomingLinks.end()) {
 			// Case 1)
@@ -388,7 +388,7 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 
 	// Resolve outputs
 	for(auto &output : GetOutputs()) {
-		pragma::scenekit::Socket socket {*this, output.first, true /* output */};
+		Socket socket {*this, output.first, true /* output */};
 		auto it = outgoingLinks.find(socket);
 		if(it == outgoingLinks.end()) {
 			// Case 1)
@@ -404,7 +404,7 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 				socket.GetNode(outputSocketName);
 				toSocketNode->FindInputOrPropertyDesc(toSocketName)->dataValue = FindOutputSocketDesc(outputSocketName)->dataValue;
 			}
-			auto itParentLink = std::find_if(parentLinks.begin(), parentLinks.end(), [&socket](const pragma::scenekit::NodeDescLink &link) { return link.fromSocket == socket; });
+			auto itParentLink = std::find_if(parentLinks.begin(), parentLinks.end(), [&socket](const NodeDescLink &link) { return link.fromSocket == socket; });
 			assert(itParentLink != parentLinks.end());
 			parentLinks.erase(itParentLink);
 			continue;
@@ -418,7 +418,7 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 	while(clearParentLinks.empty() == false) {
 		auto &sock = clearParentLinks.front();
 
-		auto it = std::find_if(parentLinks.begin(), parentLinks.end(), [&sock](const pragma::scenekit::NodeDescLink &link) { return link.toSocket == sock; });
+		auto it = std::find_if(parentLinks.begin(), parentLinks.end(), [&sock](const NodeDescLink &link) { return link.toSocket == sock; });
 		assert(it != parentLinks.end());
 		parentLinks.erase(it);
 
@@ -434,7 +434,7 @@ std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator pragma::scene
 	//
 
 	// Move non-group nodes and links to parent
-	auto &parentChildren = const_cast<std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>> &>(parent->GetChildNodes());
+	auto &parentChildren = const_cast<std::vector<std::shared_ptr<NodeDesc>> &>(parent->GetChildNodes());
 	itParent = parentChildren.erase(itParent);
 	auto iParent = itParent - parentChildren.begin();
 	parentChildren.reserve(parentChildren.size() + children.size());
@@ -514,14 +514,14 @@ pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::AddNormalMapNodeDes
 }
 pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::AddImageTextureNode(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, TextureType type)
 {
-	pragma::scenekit::NodeDesc *desc = nullptr;
+	NodeDesc *desc = nullptr;
 	switch(type) {
 	case TextureType::ColorImage:
 		{
 			auto &node = AddNode(NODE_IMAGE_TEXTURE);
 			node.SetProperty(nodes::image_texture::IN_COLORSPACE, COLORSPACE_SRGB.c_str());
 			// This is required, otherwise the alpha channel will affect the color channels even if alpha translucency is disabled (tested with cycles)
-			node.SetProperty(nodes::image_texture::IN_ALPHA_TYPE, pragma::scenekit::nodes::image_texture::AlphaType::ChannelPacked);
+			node.SetProperty(nodes::image_texture::IN_ALPHA_TYPE, nodes::image_texture::AlphaType::ChannelPacked);
 			desc = &node;
 			break;
 		}
@@ -536,14 +536,14 @@ pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::AddImageTextureNode
 		{
 			auto &node = AddNode(NODE_ENVIRONMENT_TEXTURE);
 			node.SetProperty(nodes::environment_texture::IN_COLORSPACE, COLORSPACE_RAW.c_str());
-			node.SetProperty(nodes::environment_texture::IN_PROJECTION, pragma::scenekit::EnvironmentProjection::Equirectangular);
+			node.SetProperty(nodes::environment_texture::IN_PROJECTION, EnvironmentProjection::Equirectangular);
 			desc = &node;
 			break;
 		}
 	case TextureType::NormalMap:
 		return AddNormalMapNodeDesc(fileName, fileNameSocket);
 	}
-	static_assert(umath::to_integral(TextureType::Count) == 4);
+	static_assert(math::to_integral(TextureType::Count) == 4);
 	assert(nodes::image_texture::IN_FILENAME == nodes::environment_texture::IN_FILENAME);
 	if(fileName.has_value())
 		desc->SetProperty(nodes::image_texture::IN_FILENAME, *fileName);
@@ -794,7 +794,7 @@ enum class PassType : uint8_t {
 };
 void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 {
-	std::array<std::shared_ptr<pragma::scenekit::GroupNodeDesc>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
+	std::array<std::shared_ptr<GroupNodeDesc>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
 	uint32_t flags = 0;
 	for(auto i = decltype(passes.size()) {0u}; i < passes.size(); ++i) {
 		if(passes.at(i))
@@ -833,7 +833,7 @@ void pragma::scenekit::Shader::Serialize(udm::LinkedPropertyWrapper &data) const
 }
 void pragma::scenekit::Shader::Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager)
 {
-	std::array<std::reference_wrapper<std::shared_ptr<pragma::scenekit::GroupNodeDesc>>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
+	std::array<std::reference_wrapper<std::shared_ptr<GroupNodeDesc>>, 4> passes = {combinedPass, albedoPass, normalPass, depthPass};
 
 	auto udmHair = data["hairConfig"];
 	if(udmHair) {
@@ -887,7 +887,7 @@ std::shared_ptr<pragma::scenekit::NodeManager> pragma::scenekit::NodeManager::Cr
 pragma::scenekit::NodeTypeId pragma::scenekit::NodeManager::RegisterNodeType(const std::string &typeName, const std::function<std::shared_ptr<NodeDesc>(GroupNodeDesc *)> &factory)
 {
 	auto lTypeName = typeName;
-	ustring::to_lower(lTypeName);
+	string::to_lower(lTypeName);
 	auto it = std::find_if(m_nodeTypes.begin(), m_nodeTypes.end(), [&lTypeName](const NodeType &nt) { return nt.typeName == lTypeName; });
 	if(it == m_nodeTypes.end()) {
 		if(m_nodeTypes.size() == m_nodeTypes.capacity())
@@ -904,7 +904,7 @@ pragma::scenekit::NodeTypeId pragma::scenekit::NodeManager::RegisterNodeType(con
 std::optional<pragma::scenekit::NodeTypeId> pragma::scenekit::NodeManager::FindNodeTypeId(const std::string &typeName) const
 {
 	auto lTypeName = typeName;
-	ustring::to_lower(lTypeName);
+	string::to_lower(lTypeName);
 	auto it = std::find_if(m_nodeTypes.begin(), m_nodeTypes.end(), [&lTypeName](const NodeType &nodeType) { return nodeType.typeName == lTypeName; });
 	if(it == m_nodeTypes.end())
 		return {};
@@ -933,289 +933,289 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 {
 	RegisterNodeType(NODE_MATH, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::math::IN_TYPE, nodes::math::MathType::Add);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::math::IN_USE_CLAMP, false);
+		desc->RegisterSocket<SocketType::Enum>(nodes::math::IN_TYPE, nodes::math::MathType::Add);
+		desc->RegisterSocket<SocketType::Bool>(nodes::math::IN_USE_CLAMP, false);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::math::IN_VALUE1, 0.5f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::math::IN_VALUE2, 0.5f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::math::IN_VALUE3, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::math::IN_VALUE1, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::math::IN_VALUE2, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::math::IN_VALUE3, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::math::OUT_VALUE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::math::OUT_VALUE, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::math::OUT_VALUE);
 		return desc;
 	});
 	RegisterNodeType(NODE_HSV, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::hsv::IN_HUE, 0.5f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::hsv::IN_SATURATION, 1.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::hsv::IN_VALUE, 1.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::hsv::IN_FAC, 1.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::hsv::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::hsv::IN_HUE, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::hsv::IN_SATURATION, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::hsv::IN_VALUE, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::hsv::IN_FAC, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::hsv::IN_COLOR, STColor {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::hsv::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::hsv::OUT_COLOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::hsv::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_SEPARATE_XYZ, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::separate_xyz::IN_VECTOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::separate_xyz::IN_VECTOR, STColor {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_xyz::OUT_X, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_xyz::OUT_Y, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_xyz::OUT_Z, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_xyz::OUT_X, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_xyz::OUT_Y, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_xyz::OUT_Z, SocketIO::Out);
 		return desc;
 	});
 	RegisterNodeType(NODE_COMBINE_XYZ, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_xyz::IN_X, 0.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_xyz::IN_Y, 0.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_xyz::IN_Z, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_xyz::IN_X, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_xyz::IN_Y, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_xyz::IN_Z, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::combine_xyz::OUT_VECTOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::combine_xyz::OUT_VECTOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::combine_xyz::OUT_VECTOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_SEPARATE_RGB, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::separate_rgb::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::separate_rgb::IN_COLOR, STColor {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_rgb::OUT_R, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_rgb::OUT_G, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::separate_rgb::OUT_B, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_R, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_G, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_B, SocketIO::Out);
 		return desc;
 	});
 	RegisterNodeType(NODE_COMBINE_RGB, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_rgb::IN_R, 0.f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_rgb::IN_G, 0.f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::combine_rgb::IN_B, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_R, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_G, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_B, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::combine_rgb::OUT_IMAGE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::combine_rgb::OUT_IMAGE, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::combine_rgb::OUT_IMAGE);
 		return desc;
 	});
 	RegisterNodeType(NODE_GEOMETRY, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::geometry::OUT_POSITION, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::geometry::OUT_NORMAL, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::geometry::OUT_TANGENT, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::geometry::OUT_TRUE_NORMAL, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::geometry::OUT_INCOMING, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::geometry::OUT_PARAMETRIC, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::geometry::OUT_BACKFACING, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::geometry::OUT_POINTINESS, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::geometry::OUT_RANDOM_PER_ISLAND, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::geometry::OUT_POSITION, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::geometry::OUT_NORMAL, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::geometry::OUT_TANGENT, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::geometry::OUT_TRUE_NORMAL, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::geometry::OUT_INCOMING, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::geometry::OUT_PARAMETRIC, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::geometry::OUT_BACKFACING, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::geometry::OUT_POINTINESS, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::geometry::OUT_RANDOM_PER_ISLAND, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::geometry::OUT_POSITION);
 		return desc;
 	});
 	RegisterNodeType(NODE_CAMERA_INFO, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::camera_info::OUT_VIEW_VECTOR, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::camera_info::OUT_VIEW_Z_DEPTH, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::camera_info::OUT_VIEW_DISTANCE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::camera_info::OUT_VIEW_VECTOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::camera_info::OUT_VIEW_Z_DEPTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::camera_info::OUT_VIEW_DISTANCE, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::camera_info::OUT_VIEW_VECTOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_IMAGE_TEXTURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::image_texture::IN_FILENAME, STString {});
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::image_texture::IN_COLORSPACE, STString {COLORSPACE_AUTO});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::image_texture::IN_ALPHA_TYPE, nodes::image_texture::AlphaType::Auto);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::image_texture::IN_INTERPOLATION, nodes::image_texture::InterpolationType::Linear);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::image_texture::IN_EXTENSION, nodes::image_texture::ExtensionType::Repeat);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::image_texture::IN_PROJECTION, nodes::image_texture::Projection::Flat);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::image_texture::IN_PROJECTION_BLEND, 0.0f);
+		desc->RegisterSocket<SocketType::String>(nodes::image_texture::IN_FILENAME, STString {});
+		desc->RegisterSocket<SocketType::String>(nodes::image_texture::IN_COLORSPACE, STString {COLORSPACE_AUTO});
+		desc->RegisterSocket<SocketType::Enum>(nodes::image_texture::IN_ALPHA_TYPE, nodes::image_texture::AlphaType::Auto);
+		desc->RegisterSocket<SocketType::Enum>(nodes::image_texture::IN_INTERPOLATION, nodes::image_texture::InterpolationType::Linear);
+		desc->RegisterSocket<SocketType::Enum>(nodes::image_texture::IN_EXTENSION, nodes::image_texture::ExtensionType::Repeat);
+		desc->RegisterSocket<SocketType::Enum>(nodes::image_texture::IN_PROJECTION, nodes::image_texture::Projection::Flat);
+		desc->RegisterSocket<SocketType::Float>(nodes::image_texture::IN_PROJECTION_BLEND, 0.0f);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::image_texture::IN_VECTOR, STPoint {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Point>(nodes::image_texture::IN_VECTOR, STPoint {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::image_texture::OUT_COLOR, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::image_texture::OUT_ALPHA, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::image_texture::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::image_texture::OUT_ALPHA, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::image_texture::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_NORMAL_TEXTURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::normal_texture::IN_FILENAME, STString {});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::normal_texture::IN_STRENGTH, 1.f);
+		desc->RegisterSocket<SocketType::String>(nodes::normal_texture::IN_FILENAME, STString {});
+		desc->RegisterSocket<SocketType::Float>(nodes::normal_texture::IN_STRENGTH, 1.f);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::normal_texture::OUT_NORMAL, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::normal_texture::OUT_NORMAL, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::normal_texture::OUT_NORMAL);
 		return desc;
 	});
 	RegisterNodeType(NODE_ENVIRONMENT_TEXTURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::environment_texture::IN_FILENAME, STString {});
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::environment_texture::IN_COLORSPACE, STString {COLORSPACE_AUTO});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::environment_texture::IN_ALPHA_TYPE, nodes::image_texture::AlphaType::Auto);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::environment_texture::IN_INTERPOLATION, nodes::image_texture::InterpolationType::Linear);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::environment_texture::IN_PROJECTION, pragma::scenekit::EnvironmentProjection::Equirectangular);
+		desc->RegisterSocket<SocketType::String>(nodes::environment_texture::IN_FILENAME, STString {});
+		desc->RegisterSocket<SocketType::String>(nodes::environment_texture::IN_COLORSPACE, STString {COLORSPACE_AUTO});
+		desc->RegisterSocket<SocketType::Enum>(nodes::environment_texture::IN_ALPHA_TYPE, nodes::image_texture::AlphaType::Auto);
+		desc->RegisterSocket<SocketType::Enum>(nodes::environment_texture::IN_INTERPOLATION, nodes::image_texture::InterpolationType::Linear);
+		desc->RegisterSocket<SocketType::Enum>(nodes::environment_texture::IN_PROJECTION, EnvironmentProjection::Equirectangular);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::environment_texture::IN_VECTOR, STVector {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::environment_texture::IN_VECTOR, STVector {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::environment_texture::OUT_COLOR, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::environment_texture::OUT_ALPHA, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::environment_texture::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::environment_texture::OUT_ALPHA, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::environment_texture::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_MIX_CLOSURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::mix_closure::IN_FAC, 0.5f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::mix_closure::IN_CLOSURE1, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::mix_closure::IN_CLOSURE2, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::mix_closure::IN_FAC, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::mix_closure::IN_CLOSURE1, SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::mix_closure::IN_CLOSURE2, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::mix_closure::OUT_CLOSURE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::mix_closure::OUT_CLOSURE, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::mix_closure::OUT_CLOSURE);
 		return desc;
 	});
 	RegisterNodeType(NODE_ADD_CLOSURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::add_closure::IN_CLOSURE1, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::add_closure::IN_CLOSURE2, SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::add_closure::IN_CLOSURE1, SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::add_closure::IN_CLOSURE2, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::add_closure::OUT_CLOSURE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::add_closure::OUT_CLOSURE, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::add_closure::OUT_CLOSURE);
 		return desc;
 	});
 	RegisterNodeType(NODE_BACKGROUND_SHADER, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::background_shader::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::background_shader::IN_STRENGTH, 1.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::background_shader::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::background_shader::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::background_shader::IN_STRENGTH, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::background_shader::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::background_shader::OUT_BACKGROUND, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::background_shader::OUT_BACKGROUND, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::background_shader::OUT_BACKGROUND);
 		return desc;
 	});
 	RegisterNodeType(NODE_TEXTURE_COORDINATE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::texture_coordinate::IN_FROM_DUPLI, false);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::texture_coordinate::IN_USE_TRANSFORM, false);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Transform>(nodes::texture_coordinate::IN_OB_TFM, STTransform {1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0});
+		desc->RegisterSocket<SocketType::Bool>(nodes::texture_coordinate::IN_FROM_DUPLI, false);
+		desc->RegisterSocket<SocketType::Bool>(nodes::texture_coordinate::IN_USE_TRANSFORM, false);
+		desc->RegisterSocket<SocketType::Transform>(nodes::texture_coordinate::IN_OB_TFM, STTransform {1.f, 0, 0, 0, 0, 1.f, 0, 0, 0, 0, 1.f, 0});
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_GENERATED, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::texture_coordinate::OUT_NORMAL, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_UV, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_OBJECT, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_CAMERA, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_WINDOW, SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::texture_coordinate::OUT_REFLECTION, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_GENERATED, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::texture_coordinate::OUT_NORMAL, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_UV, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_OBJECT, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_CAMERA, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_WINDOW, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::texture_coordinate::OUT_REFLECTION, SocketIO::Out);
 		return desc;
 	});
 	RegisterNodeType(NODE_UVMAP, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::texture_coordinate::OUT_UV, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Point>(nodes::texture_coordinate::OUT_UV, SocketIO::Out);
 		return desc;
 	});
 	RegisterNodeType(NODE_MAPPING, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::mapping::IN_TYPE, nodes::mapping::Type::Point);
+		desc->RegisterSocket<SocketType::Enum>(nodes::mapping::IN_TYPE, nodes::mapping::Type::Point);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::mapping::IN_VECTOR, STPoint {}, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::mapping::IN_LOCATION, STPoint {}, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point, Vector3>(nodes::mapping::IN_ROTATION, STPoint {}, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Point>(nodes::mapping::IN_SCALE, STPoint {1.f, 1.f, 1.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Point>(nodes::mapping::IN_VECTOR, STPoint {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Point>(nodes::mapping::IN_LOCATION, STPoint {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Point, Vector3>(nodes::mapping::IN_ROTATION, STPoint {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Point>(nodes::mapping::IN_SCALE, STPoint {1.f, 1.f, 1.f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::mapping::OUT_VECTOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::mapping::OUT_VECTOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::mapping::OUT_VECTOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_SCATTER_VOLUME, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::scatter_volume::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::scatter_volume::IN_DENSITY, 1.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::scatter_volume::IN_ANISOTROPY, 0.0f, SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::scatter_volume::IN_VOLUME_MIX_WEIGHT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::scatter_volume::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::scatter_volume::IN_DENSITY, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::scatter_volume::IN_ANISOTROPY, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::scatter_volume::IN_VOLUME_MIX_WEIGHT, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::scatter_volume::OUT_VOLUME, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::scatter_volume::OUT_VOLUME, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::scatter_volume::OUT_VOLUME);
 		return desc;
 	});
 	RegisterNodeType(NODE_EMISSION, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::emission::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::emission::IN_STRENGTH, 1.0f, pragma::scenekit::SocketIO::In); // Default in Cycles is 10, which is a little excessive for our purposes
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::emission::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::emission::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::emission::IN_STRENGTH, 1.0f, SocketIO::In); // Default in Cycles is 10, which is a little excessive for our purposes
+		desc->RegisterSocket<SocketType::Float>(nodes::emission::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::emission::OUT_EMISSION, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::emission::OUT_EMISSION, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::emission::OUT_EMISSION);
 		return desc;
 	});
 	RegisterNodeType(NODE_COLOR, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::color::IN_VALUE, STColor {});
+		desc->RegisterSocket<SocketType::Color>(nodes::color::IN_VALUE, STColor {});
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::color::OUT_COLOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::color::OUT_COLOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::color::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_ATTRIBUTE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::attribute::IN_ATTRIBUTE, STString {});
+		desc->RegisterSocket<SocketType::String>(nodes::attribute::IN_ATTRIBUTE, STString {});
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::attribute::OUT_COLOR, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::attribute::OUT_VECTOR, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::attribute::OUT_FAC, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::attribute::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::attribute::OUT_VECTOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::attribute::OUT_FAC, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::attribute::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_LIGHT_PATH, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_CAMERA_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_SHADOW_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_DIFFUSE_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_GLOSSY_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_SINGULAR_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_REFLECTION_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_TRANSMISSION_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_IS_VOLUME_SCATTER_RAY, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_RAY_LENGTH, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_RAY_DEPTH, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_DIFFUSE_DEPTH, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_GLOSSY_DEPTH, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_TRANSPARENT_DEPTH, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::light_path::OUT_TRANSMISSION_DEPTH, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_CAMERA_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_SHADOW_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_DIFFUSE_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_GLOSSY_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_SINGULAR_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_REFLECTION_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_TRANSMISSION_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_IS_VOLUME_SCATTER_RAY, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_RAY_LENGTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_RAY_DEPTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_DIFFUSE_DEPTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_GLOSSY_DEPTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_TRANSPARENT_DEPTH, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::light_path::OUT_TRANSMISSION_DEPTH, SocketIO::Out);
 		return desc;
 	});
 	RegisterNodeType(NODE_TRANSPARENT_BSDF, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::transparent_bsdf::IN_COLOR, STColor {1.f, 1.f, 1.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::transparent_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::transparent_bsdf::IN_COLOR, STColor {1.f, 1.f, 1.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::transparent_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::transparent_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::transparent_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::transparent_bsdf::OUT_BSDF);
 		return desc;
 	});
 	RegisterNodeType(NODE_TRANSLUCENT_BSDF, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::translucent_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::translucent_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::translucent_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::translucent_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::translucent_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::translucent_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::translucent_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::translucent_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::translucent_bsdf::OUT_BSDF);
 		return desc;
 	});
 	RegisterNodeType(NODE_DIFFUSE_BSDF, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::diffuse_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::diffuse_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::diffuse_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::diffuse_bsdf::IN_ROUGHNESS, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::diffuse_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::diffuse_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::diffuse_bsdf::IN_SURFACE_MIX_WEIGHT, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::diffuse_bsdf::IN_ROUGHNESS, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::diffuse_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::diffuse_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::diffuse_bsdf::OUT_BSDF);
 		return desc;
 	});
 	RegisterNodeType(NODE_NORMAL_MAP, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::normal_map::IN_SPACE, nodes::normal_map::Space::Tangent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::String>(nodes::normal_map::IN_ATTRIBUTE, STString {});
+		desc->RegisterSocket<SocketType::Enum>(nodes::normal_map::IN_SPACE, nodes::normal_map::Space::Tangent);
+		desc->RegisterSocket<SocketType::String>(nodes::normal_map::IN_ATTRIBUTE, STString {});
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::normal_map::IN_STRENGTH, 1.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::normal_map::IN_COLOR, STColor {0.5f, 0.5f, 1.0f}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::normal_map::IN_STRENGTH, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::normal_map::IN_COLOR, STColor {0.5f, 0.5f, 1.0f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::normal_map::OUT_NORMAL, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Normal>(nodes::normal_map::OUT_NORMAL, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::normal_map::OUT_NORMAL);
 		return desc;
 	});
@@ -1226,52 +1226,52 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 		constexpr uint32_t CLOSURE_BSDF_MICROFACET_MULTI_GGX_GLASS_ID = 30;
 		constexpr uint32_t CLOSURE_BSSRDF_PRINCIPLED_ID = 42;
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::principled_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_MULTI_GGX_GLASS_ID);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::principled_bsdf::IN_SUBSURFACE_METHOD, CLOSURE_BSSRDF_PRINCIPLED_ID);
+		desc->RegisterSocket<SocketType::Enum>(nodes::principled_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_MULTI_GGX_GLASS_ID);
+		desc->RegisterSocket<SocketType::Enum>(nodes::principled_bsdf::IN_SUBSURFACE_METHOD, CLOSURE_BSSRDF_PRINCIPLED_ID);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_bsdf::IN_BASE_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_bsdf::IN_SUBSURFACE_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_METALLIC, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SUBSURFACE, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::principled_bsdf::IN_SUBSURFACE_RADIUS, STVector {0.1f, 0.1f, 0.1f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SPECULAR, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_ROUGHNESS, 0.5f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SPECULAR_TINT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_ANISOTROPIC, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SHEEN, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SHEEN_TINT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_CLEARCOAT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_CLEARCOAT_ROUGHNESS, 0.03f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_IOR, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_TRANSMISSION, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_TRANSMISSION_ROUGHNESS, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_ANISOTROPIC_ROTATION, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_bsdf::IN_EMISSION, STColor {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_ALPHA, 1.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::principled_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::principled_bsdf::IN_CLEARCOAT_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::principled_bsdf::IN_TANGENT, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_bsdf::IN_BASE_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_bsdf::IN_SUBSURFACE_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_METALLIC, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SUBSURFACE, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::principled_bsdf::IN_SUBSURFACE_RADIUS, STVector {0.1f, 0.1f, 0.1f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SPECULAR, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_ROUGHNESS, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SPECULAR_TINT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_ANISOTROPIC, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SHEEN, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SHEEN_TINT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_CLEARCOAT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_CLEARCOAT_ROUGHNESS, 0.03f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_IOR, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_TRANSMISSION, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_TRANSMISSION_ROUGHNESS, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_ANISOTROPIC_ROTATION, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_bsdf::IN_EMISSION, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_ALPHA, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::principled_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::principled_bsdf::IN_CLEARCOAT_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::principled_bsdf::IN_TANGENT, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::principled_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::principled_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::principled_bsdf::OUT_BSDF);
 		return desc;
 	});
 	RegisterNodeType(NODE_PRINCIPLED_VOLUME, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_volume::IN_COLOR, STColor {0.5f, 0.5f, 0.5f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_DENSITY, 1.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_ANISOTROPY, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_volume::IN_ABSORPTION_COLOR, STColor {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_EMISSION_STRENGTH, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_volume::IN_EMISSION_COLOR, STColor {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_BLACKBODY_INTENSITY, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::principled_volume::IN_BLACKBODY_TINT, STColor {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_TEMPERATURE, 1000.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::principled_volume::IN_VOLUME_MIX_WEIGHT, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_volume::IN_COLOR, STColor {0.5f, 0.5f, 0.5f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_DENSITY, 1.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_ANISOTROPY, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_volume::IN_ABSORPTION_COLOR, STColor {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_EMISSION_STRENGTH, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_volume::IN_EMISSION_COLOR, STColor {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_BLACKBODY_INTENSITY, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::principled_volume::IN_BLACKBODY_TINT, STColor {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_TEMPERATURE, 1000.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::principled_volume::IN_VOLUME_MIX_WEIGHT, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::principled_volume::OUT_VOLUME, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::principled_volume::OUT_VOLUME, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::principled_volume::OUT_VOLUME);
 		return desc;
 	});
@@ -1281,15 +1281,15 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 		// See kernel/svm/svm_types.h in Cycles source code
 		constexpr uint32_t CLOSURE_BSDF_DIFFUSE_TOON_ID = 7;
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::toon_bsdf::IN_COMPONENT, CLOSURE_BSDF_DIFFUSE_TOON_ID);
+		desc->RegisterSocket<SocketType::Enum>(nodes::toon_bsdf::IN_COMPONENT, CLOSURE_BSDF_DIFFUSE_TOON_ID);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::toon_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::toon_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::toon_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::toon_bsdf::IN_SIZE, 0.5f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::toon_bsdf::IN_SMOOTH, 0.0f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::toon_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::toon_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::toon_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::toon_bsdf::IN_SIZE, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::toon_bsdf::IN_SMOOTH, 0.0f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::toon_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::toon_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::toon_bsdf::OUT_BSDF);
 		return desc;
 	});
@@ -1299,14 +1299,14 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 		// See kernel/svm/svm_types.h in Cycles source code
 		constexpr uint32_t CLOSURE_BSDF_MICROFACET_GGX_ID = 9;
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::glossy_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glossy_bsdf::IN_ALPHA, 1.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::glossy_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glossy_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::glass_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_GGX_ID);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glass_bsdf::IN_ROUGHNESS, 0.5f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::glossy_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::glossy_bsdf::IN_ALPHA, 1.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::glossy_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::glossy_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Enum>(nodes::glass_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_GGX_ID);
+		desc->RegisterSocket<SocketType::Float>(nodes::glass_bsdf::IN_ROUGHNESS, 0.5f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::glass_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::glass_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::glass_bsdf::OUT_BSDF);
 		return desc;
 	});
@@ -1316,183 +1316,183 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 		// See kernel/svm/svm_types.h in Cycles source code
 		constexpr uint32_t CLOSURE_BSDF_MICROFACET_GGX_GLASS_ID = 32;
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::glass_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_GGX_GLASS_ID);
+		desc->RegisterSocket<SocketType::Enum>(nodes::glass_bsdf::IN_DISTRIBUTION, CLOSURE_BSDF_MICROFACET_GGX_GLASS_ID);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::glass_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::glass_bsdf::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glass_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glass_bsdf::IN_ROUGHNESS, 0.0f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::glass_bsdf::IN_IOR, 0.3f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::glass_bsdf::IN_COLOR, STColor {0.8f, 0.8f, 0.8f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::glass_bsdf::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::glass_bsdf::IN_SURFACE_MIX_WEIGHT, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::glass_bsdf::IN_ROUGHNESS, 0.0f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::glass_bsdf::IN_IOR, 0.3f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::glass_bsdf::OUT_BSDF, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::glass_bsdf::OUT_BSDF, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::glass_bsdf::OUT_BSDF);
 		return desc;
 	});
 	RegisterNodeType(NODE_VOLUME_CLEAR, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Int>(nodes::volume_clear::IN_PRIORITY, 0, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_clear::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_clear::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_clear::IN_EMISSION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Int>(nodes::volume_clear::IN_PRIORITY, 0, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_clear::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_clear::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_clear::IN_EMISSION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::volume_clear::IN_DEFAULT_WORLD_VOLUME, false);
+		desc->RegisterSocket<SocketType::Bool>(nodes::volume_clear::IN_DEFAULT_WORLD_VOLUME, false);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::volume_clear::OUT_VOLUME, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::volume_clear::OUT_VOLUME, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::volume_clear::OUT_VOLUME);
 		return desc;
 	});
 	RegisterNodeType(NODE_VOLUME_HOMOGENEOUS, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Int>(nodes::volume_homogeneous::IN_PRIORITY, 0, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_homogeneous::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_homogeneous::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_homogeneous::IN_EMISSION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Int>(nodes::volume_homogeneous::IN_PRIORITY, 0, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_homogeneous::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_homogeneous::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_homogeneous::IN_EMISSION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_homogeneous::IN_SCATTERING, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_homogeneous::IN_ASYMMETRY, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::volume_homogeneous::IN_MULTI_SCATTERING, false, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_homogeneous::IN_SCATTERING, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_homogeneous::IN_ASYMMETRY, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Bool>(nodes::volume_homogeneous::IN_MULTI_SCATTERING, false, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::volume_homogeneous::IN_ABSORPTION_DEPTH, 0.01f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::volume_homogeneous::IN_DEFAULT_WORLD_VOLUME, false);
+		desc->RegisterSocket<SocketType::Float>(nodes::volume_homogeneous::IN_ABSORPTION_DEPTH, 0.01f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Bool>(nodes::volume_homogeneous::IN_DEFAULT_WORLD_VOLUME, false);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::volume_homogeneous::OUT_VOLUME, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::volume_homogeneous::OUT_VOLUME, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::volume_homogeneous::OUT_VOLUME);
 		return desc;
 	});
 	RegisterNodeType(NODE_VOLUME_HETEROGENEOUS, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Int>(nodes::volume_heterogeneous::IN_PRIORITY, 0, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_heterogeneous::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_heterogeneous::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_heterogeneous::IN_EMISSION, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Int>(nodes::volume_heterogeneous::IN_PRIORITY, 0, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_heterogeneous::IN_IOR, STVector {0.3f, 0.3f, 0.3f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_heterogeneous::IN_ABSORPTION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_heterogeneous::IN_EMISSION, STVector {0.f, 0.f, 0.f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_heterogeneous::IN_SCATTERING, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::volume_heterogeneous::IN_ASYMMETRY, STVector {0.f, 0.f, 0.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::volume_heterogeneous::IN_MULTI_SCATTERING, false, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_heterogeneous::IN_SCATTERING, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::volume_heterogeneous::IN_ASYMMETRY, STVector {0.f, 0.f, 0.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Bool>(nodes::volume_heterogeneous::IN_MULTI_SCATTERING, false, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::volume_heterogeneous::IN_STEP_SIZE, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Int>(nodes::volume_heterogeneous::IN_STEP_MAX_COUNT, 0, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::volume_heterogeneous::IN_STEP_SIZE, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Int>(nodes::volume_heterogeneous::IN_STEP_MAX_COUNT, 0, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::volume_heterogeneous::IN_DEFAULT_WORLD_VOLUME, false);
+		desc->RegisterSocket<SocketType::Bool>(nodes::volume_heterogeneous::IN_DEFAULT_WORLD_VOLUME, false);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::volume_heterogeneous::OUT_VOLUME, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Closure>(nodes::volume_heterogeneous::OUT_VOLUME, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::volume_heterogeneous::OUT_VOLUME);
 		return desc;
 	});
 	RegisterNodeType(NODE_OUTPUT, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::output::IN_SURFACE, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Closure>(nodes::output::IN_VOLUME, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::output::IN_DISPLACEMENT, STVector {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::output::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::output::IN_SURFACE, SocketIO::In);
+		desc->RegisterSocket<SocketType::Closure>(nodes::output::IN_VOLUME, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::output::IN_DISPLACEMENT, STVector {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::output::IN_NORMAL, STNormal {}, SocketIO::In);
 		return desc;
 	});
 	RegisterNodeType(NODE_VECTOR_MATH, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::vector_math::IN_TYPE, nodes::vector_math::MathType::Add);
+		desc->RegisterSocket<SocketType::Enum>(nodes::vector_math::IN_TYPE, nodes::vector_math::MathType::Add);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::vector_math::IN_VECTOR1, STVector {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::vector_math::IN_VECTOR2, STVector {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::vector_math::IN_SCALE, 1.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::vector_math::IN_VECTOR1, STVector {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::vector_math::IN_VECTOR2, STVector {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::vector_math::IN_SCALE, 1.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::vector_math::OUT_VALUE, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::vector_math::OUT_VECTOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::vector_math::OUT_VALUE, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::vector_math::OUT_VECTOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::vector_math::OUT_VECTOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_MIX, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::mix::IN_TYPE, nodes::mix::Mix::Blend);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::mix::IN_USE_CLAMP, false);
+		desc->RegisterSocket<SocketType::Enum>(nodes::mix::IN_TYPE, nodes::mix::Mix::Blend);
+		desc->RegisterSocket<SocketType::Bool>(nodes::mix::IN_USE_CLAMP, false);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::mix::IN_FAC, 0.5f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::mix::IN_COLOR1, STColor {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::mix::IN_COLOR2, STColor {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::mix::IN_FAC, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::mix::IN_COLOR1, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::mix::IN_COLOR2, STColor {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::mix::OUT_COLOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::mix::OUT_COLOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::mix::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_NOISE_TEXTURE, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::noise_texture::IN_VECTOR, STVector {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::IN_W, 0.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::IN_SCALE, 1.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::IN_DETAIL, 2.f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::IN_ROUGHNESS, 0.5f, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::IN_DISTORTION, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Vector>(nodes::noise_texture::IN_VECTOR, STVector {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::IN_W, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::IN_SCALE, 1.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::IN_DETAIL, 2.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::IN_ROUGHNESS, 0.5f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::IN_DISTORTION, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::noise_texture::OUT_FAC, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::noise_texture::OUT_COLOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::noise_texture::OUT_FAC, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::noise_texture::OUT_COLOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::noise_texture::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_RGB_TO_BW, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::rgb_to_bw::IN_COLOR, STColor {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::rgb_to_bw::IN_COLOR, STColor {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::rgb_to_bw::OUT_VAL, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::rgb_to_bw::OUT_VAL, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::rgb_to_bw::OUT_VAL);
 		return desc;
 	});
 	RegisterNodeType(NODE_INVERT, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::invert::IN_COLOR, STColor {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::invert::IN_FAC, STFloat {1.f}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::invert::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::invert::IN_FAC, STFloat {1.f}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::invert::OUT_COLOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::invert::OUT_COLOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::invert::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_VECTOR_TRANSFORM, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::vector_transform::IN_TYPE, nodes::vector_transform::Type::Vector);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::vector_transform::IN_CONVERT_FROM, pragma::scenekit::nodes::vector_transform::ConvertSpace::World);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Enum>(nodes::vector_transform::IN_CONVERT_TO, pragma::scenekit::nodes::vector_transform::ConvertSpace::Object);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::vector_transform::IN_VECTOR, STVector {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Enum>(nodes::vector_transform::IN_TYPE, nodes::vector_transform::Type::Vector);
+		desc->RegisterSocket<SocketType::Enum>(nodes::vector_transform::IN_CONVERT_FROM, nodes::vector_transform::ConvertSpace::World);
+		desc->RegisterSocket<SocketType::Enum>(nodes::vector_transform::IN_CONVERT_TO, nodes::vector_transform::ConvertSpace::Object);
+		desc->RegisterSocket<SocketType::Vector>(nodes::vector_transform::IN_VECTOR, STVector {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Vector>(nodes::vector_transform::OUT_VECTOR, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Vector>(nodes::vector_transform::OUT_VECTOR, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::vector_transform::OUT_VECTOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_RGB_RAMP, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::ColorArray>(nodes::rgb_ramp::IN_RAMP, STColorArray {});
-		desc->RegisterSocket<pragma::scenekit::SocketType::FloatArray>(nodes::rgb_ramp::IN_RAMP_ALPHA, STFloatArray {});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::rgb_ramp::IN_INTERPOLATE, true);
+		desc->RegisterSocket<SocketType::ColorArray>(nodes::rgb_ramp::IN_RAMP, STColorArray {});
+		desc->RegisterSocket<SocketType::FloatArray>(nodes::rgb_ramp::IN_RAMP_ALPHA, STFloatArray {});
+		desc->RegisterSocket<SocketType::Bool>(nodes::rgb_ramp::IN_INTERPOLATE, true);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::rgb_ramp::IN_FAC, 0.f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::rgb_ramp::IN_FAC, 0.f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::rgb_ramp::OUT_COLOR, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::rgb_ramp::OUT_ALPHA, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::rgb_ramp::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::rgb_ramp::OUT_ALPHA, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::rgb_ramp::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_LAYER_WEIGHT, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::layer_weight::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::layer_weight::IN_BLEND, 0.5f, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::layer_weight::IN_NORMAL, STNormal {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::layer_weight::IN_BLEND, 0.5f, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::layer_weight::OUT_FRESNEL, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::layer_weight::OUT_FACING, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::layer_weight::OUT_FRESNEL, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::layer_weight::OUT_FACING, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::layer_weight::OUT_FRESNEL);
 		return desc;
 	});
 	RegisterNodeType(NODE_AMBIENT_OCCLUSION, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Int>(nodes::ambient_occlusion::IN_SAMPLES, STInt {16});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::ambient_occlusion::IN_COLOR, STColor {}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::ambient_occlusion::IN_DISTANCE, STFloat {1.f}, pragma::scenekit::SocketIO::In);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Normal>(nodes::ambient_occlusion::IN_NORMAL, STNormal {}, pragma::scenekit::SocketIO::In);
+		desc->RegisterSocket<SocketType::Int>(nodes::ambient_occlusion::IN_SAMPLES, STInt {16});
+		desc->RegisterSocket<SocketType::Color>(nodes::ambient_occlusion::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::ambient_occlusion::IN_DISTANCE, STFloat {1.f}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Normal>(nodes::ambient_occlusion::IN_NORMAL, STNormal {}, SocketIO::In);
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::ambient_occlusion::IN_INSIDE, STBool {false});
-		desc->RegisterSocket<pragma::scenekit::SocketType::Bool>(nodes::ambient_occlusion::IN_ONLY_LOCAL, STBool {false});
+		desc->RegisterSocket<SocketType::Bool>(nodes::ambient_occlusion::IN_INSIDE, STBool {false});
+		desc->RegisterSocket<SocketType::Bool>(nodes::ambient_occlusion::IN_ONLY_LOCAL, STBool {false});
 
-		desc->RegisterSocket<pragma::scenekit::SocketType::Color>(nodes::ambient_occlusion::OUT_COLOR, pragma::scenekit::SocketIO::Out);
-		desc->RegisterSocket<pragma::scenekit::SocketType::Float>(nodes::ambient_occlusion::OUT_AO, pragma::scenekit::SocketIO::Out);
+		desc->RegisterSocket<SocketType::Color>(nodes::ambient_occlusion::OUT_COLOR, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::ambient_occlusion::OUT_AO, SocketIO::Out);
 		desc->RegisterPrimaryOutputSocket(nodes::layer_weight::OUT_FRESNEL);
 		return desc;
 	});

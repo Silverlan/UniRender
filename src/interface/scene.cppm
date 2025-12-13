@@ -249,7 +249,7 @@ export namespace pragma::scenekit {
 		static ccl::ShaderOutput *FindShaderNodeOutput(ccl::ShaderNode &node, const std::string &output);
 		static ccl::ShaderNode *FindShaderNode(ccl::ShaderGraph &graph, const std::string &nodeName);
 		static ccl::ShaderNode *FindShaderNode(ccl::ShaderGraph &graph, const OpenImageIO_v2_1::ustring &name);
-		void DenoiseHDRImageArea(uimg::ImageBuffer &imgBuffer, uint32_t imgWidth, uint32_t imgHeight, uint32_t x, uint32_t y, uint32_t w, uint32_t h) const;
+		void DenoiseHDRImageArea(image::ImageBuffer &imgBuffer, uint32_t imgWidth, uint32_t imgHeight, uint32_t x, uint32_t y, uint32_t w, uint32_t h) const;
 		bool IsValidTexture(const std::string &filePath) const;
 
 		std::unordered_map<std::string, std::function<void(const std::shared_ptr<void> &)>> m_debugHandlers;
@@ -266,7 +266,7 @@ export namespace pragma::scenekit {
 	enum class PassType : uint32_t;
 	DLLRTUTIL std::optional<PassType> get_main_pass_type(Scene::RenderMode renderMode);
 
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::Scene::StateFlags)

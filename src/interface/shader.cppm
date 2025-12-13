@@ -175,8 +175,8 @@ export namespace pragma::scenekit {
 		std::shared_ptr<void> ToTypeValue(const T &v, SocketType type)
 		{
 			if constexpr(std::is_same_v<T, EulerAngles>)
-				return ToTypeValue(Vector3 {umath::deg_to_rad(v.p), umath::deg_to_rad(v.y), umath::deg_to_rad(v.r)}, type);
-			else if constexpr(std::is_same_v<T, umath::Transform> || std::is_same_v<T, umath::ScaledTransform>)
+				return ToTypeValue(Vector3 {math::deg_to_rad(v.p), math::deg_to_rad(v.y), math::deg_to_rad(v.r)}, type);
+			else if constexpr(std::is_same_v<T, math::Transform> || std::is_same_v<T, math::ScaledTransform>)
 				return ToTypeValue(Mat4x3 {v.ToMatrix()}, type);
 			switch(type) {
 			case SocketType::Bool:
@@ -244,7 +244,7 @@ export namespace pragma::scenekit {
 					return nullptr;
 				}
 			}
-			static_assert(umath::to_integral(SocketType::Count) == 16);
+			static_assert(math::to_integral(SocketType::Count) == 16);
 			return nullptr;
 		}
 		util::Uuid m_uuid;
@@ -298,9 +298,9 @@ export namespace pragma::scenekit {
 		virtual void DeserializeNodes(udm::LinkedPropertyWrapper &data) override;
 		void DeserializeLinks(udm::LinkedPropertyWrapper &data, const std::unordered_map<std::string, const NodeDesc *> &nodeIndexTable);
 
-		std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator ResolveGroupNodes(std::vector<std::shared_ptr<pragma::scenekit::NodeDesc>>::iterator itParent);
-		pragma::scenekit::NodeDesc &AddNormalMapNodeDesc(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, float strength = 1.f);
-		pragma::scenekit::NodeDesc &AddImageTextureNode(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, TextureType type);
+		std::vector<std::shared_ptr<NodeDesc>>::iterator ResolveGroupNodes(std::vector<std::shared_ptr<NodeDesc>>::iterator itParent);
+		NodeDesc &AddNormalMapNodeDesc(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, float strength = 1.f);
+		NodeDesc &AddImageTextureNode(const std::optional<std::string> &fileName, const std::optional<Socket> &fileNameSocket, TextureType type);
 		GroupNodeDesc(NodeManager &nodeManager);
 	  private:
 		std::vector<std::shared_ptr<NodeDesc>> m_nodes = {};
@@ -326,7 +326,7 @@ export namespace pragma::scenekit {
 		~Shader() = default;
 
 		void SetActivePass(Pass pass);
-		std::shared_ptr<pragma::scenekit::GroupNodeDesc> GetActivePassNode() const;
+		std::shared_ptr<GroupNodeDesc> GetActivePassNode() const;
 
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
 		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
@@ -341,10 +341,10 @@ export namespace pragma::scenekit {
 
 		udm::LinkedPropertyWrapper &GetVolumeProperties();
 
-		std::shared_ptr<pragma::scenekit::GroupNodeDesc> combinedPass = nullptr;
-		std::shared_ptr<pragma::scenekit::GroupNodeDesc> albedoPass = nullptr;
-		std::shared_ptr<pragma::scenekit::GroupNodeDesc> normalPass = nullptr;
-		std::shared_ptr<pragma::scenekit::GroupNodeDesc> depthPass = nullptr;
+		std::shared_ptr<GroupNodeDesc> combinedPass = nullptr;
+		std::shared_ptr<GroupNodeDesc> albedoPass = nullptr;
+		std::shared_ptr<GroupNodeDesc> normalPass = nullptr;
+		std::shared_ptr<GroupNodeDesc> depthPass = nullptr;
 
 		void Finalize();
 	  protected:

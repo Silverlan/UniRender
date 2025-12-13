@@ -9,18 +9,18 @@ module pragma.scenekit;
 
 import :denoise;
 
-static std::optional<oidn::Format> get_oidn_format(uimg::Format format)
+static std::optional<oidn::Format> get_oidn_format(pragma::image::Format format)
 {
 	switch(format) {
-	case uimg::Format::R32:
-	case uimg::Format::RG32:
-	case uimg::Format::RGB32:
-	case uimg::Format::RGBA32:
+	case pragma::image::Format::R32:
+	case pragma::image::Format::RG32:
+	case pragma::image::Format::RGB32:
+	case pragma::image::Format::RGBA32:
 		return oidn::Format::Float3;
-	case uimg::Format::R16:
-	case uimg::Format::RG16:
-	case uimg::Format::RGB16:
-	case uimg::Format::RGBA16:
+	case pragma::image::Format::R16:
+	case pragma::image::Format::RG16:
+	case pragma::image::Format::RGB16:
+	case pragma::image::Format::RGBA16:
 		return oidn::Format::Half3;
 	}
 	return {};
@@ -49,19 +49,19 @@ bool pragma::scenekit::denoise::Denoiser::Denoise(const Info &denoise, const Ima
 	auto beautyFormat = get_oidn_format(inputImages.beautyImage.format);
 	if(!beautyFormat)
 		return false;
-	filter.setImage("color", inputImages.beautyImage.data, *beautyFormat, denoise.width, denoise.height, 0u, uimg::ImageBuffer::GetPixelSize(inputImages.beautyImage.format));
+	filter.setImage("color", inputImages.beautyImage.data, *beautyFormat, denoise.width, denoise.height, 0u, image::ImageBuffer::GetPixelSize(inputImages.beautyImage.format));
 	if(denoise.lightmap == false) {
 		if(inputImages.albedoImage.data) {
 			auto albedoFormat = get_oidn_format(inputImages.albedoImage.format);
 			if(!albedoFormat)
 				return false;
-			filter.setImage("albedo", inputImages.albedoImage.data, *albedoFormat, denoise.width, denoise.height, 0u, uimg::ImageBuffer::GetPixelSize(inputImages.albedoImage.format));
+			filter.setImage("albedo", inputImages.albedoImage.data, *albedoFormat, denoise.width, denoise.height, 0u, image::ImageBuffer::GetPixelSize(inputImages.albedoImage.format));
 		}
 		if(inputImages.normalImage.data) {
 			auto normalFormat = get_oidn_format(inputImages.normalImage.format);
 			if(!normalFormat)
 				return false;
-			filter.setImage("normal", inputImages.normalImage.data, *normalFormat, denoise.width, denoise.height, 0u, uimg::ImageBuffer::GetPixelSize(inputImages.normalImage.format));
+			filter.setImage("normal", inputImages.normalImage.data, *normalFormat, denoise.width, denoise.height, 0u, image::ImageBuffer::GetPixelSize(inputImages.normalImage.format));
 		}
 
 		filter.set("hdr", denoise.hdr);
@@ -69,7 +69,7 @@ bool pragma::scenekit::denoise::Denoiser::Denoise(const Info &denoise, const Ima
 	auto outputFormat = get_oidn_format(outputImage.format);
 	if(!outputFormat)
 		return false;
-	filter.setImage("output", outputImage.data, *outputFormat, denoise.width, denoise.height, 0u, uimg::ImageBuffer::GetPixelSize(outputImage.format));
+	filter.setImage("output", outputImage.data, *outputFormat, denoise.width, denoise.height, 0u, image::ImageBuffer::GetPixelSize(outputImage.format));
 
 	std::unique_ptr<std::function<bool(float)>> ptrProgressCallback = nullptr;
 	if(fProgressCallback) {
@@ -103,7 +103,7 @@ bool pragma::scenekit::denoise::denoise(const Info &denoise, const ImageInputs &
 	return denoiser.Denoise(denoise, inputImages, outputImage, fProgressCallback);
 }
 
-bool pragma::scenekit::denoise::denoise(const Info &denoiseInfo, uimg::ImageBuffer &imgBuffer, uimg::ImageBuffer *optImgBufferAlbedo, uimg::ImageBuffer *optImgBufferNormal, const std::function<bool(float)> &fProgressCallback)
+bool pragma::scenekit::denoise::denoise(const Info &denoiseInfo, image::ImageBuffer &imgBuffer, image::ImageBuffer *optImgBufferAlbedo, image::ImageBuffer *optImgBufferNormal, const std::function<bool(float)> &fProgressCallback)
 {
 	Denoiser denoiser {};
 	ImageInputs inputs {};

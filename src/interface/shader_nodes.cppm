@@ -98,7 +98,7 @@ export namespace pragma::scenekit {
 	  private:
 		Socket ApplyOperator(const Socket &other, nodes::math::MathType opType, std::optional<nodes::vector_math::MathType> opTypeVec, float (*applyValue)(float, float)) const;
 		Socket ApplyComparisonOperator(const Socket &other, bool (*op)(float, float), Socket (*opNode)(GroupNodeDesc &, const Socket &, const Socket &)) const;
-		pragma::scenekit::GroupNodeDesc *GetCommonGroupNode(const Socket &other) const;
+		GroupNodeDesc *GetCommonGroupNode(const Socket &other) const;
 		// Socket can either be a concrete value (e.g. float), OR an input or output of a node
 		std::optional<DataValue> m_value {};
 		struct {
@@ -709,7 +709,7 @@ export namespace std {
 			std::string socketName;
 			auto *node = k.GetNode(socketName);
 			assert(node);
-			return util::hash_combine(util::hash_combine(0, node), socketName);
+			return pragma::util::hash_combine(pragma::util::hash_combine(0, node), socketName);
 		}
 	};
 }

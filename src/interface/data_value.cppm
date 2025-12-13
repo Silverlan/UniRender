@@ -260,7 +260,7 @@ export namespace pragma::scenekit {
 			return {};
 		}
 		static DataValue Deserialize(udm::LinkedPropertyWrapper &data);
-		static DataValue Deserialize(util::DataStream &dsIn);
+		static DataValue Deserialize(pragma::util::DataStream &dsIn);
 		DataValue(SocketType type, const std::shared_ptr<void> &value) : type {type}, value {value} {}
 		DataValue() = default;
 
@@ -268,7 +268,7 @@ export namespace pragma::scenekit {
 		bool operator!=(const DataValue &other) const { return !operator==(other); }
 
 		void Serialize(udm::LinkedPropertyWrapper &data) const;
-		void Serialize(util::DataStream &dsOut) const;
+		void Serialize(pragma::util::DataStream &dsOut) const;
 
 		SocketType type = SocketType::Bool;
 		std::shared_ptr<void> value = nullptr;

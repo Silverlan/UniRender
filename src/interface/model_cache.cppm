@@ -49,7 +49,7 @@ export namespace pragma::scenekit {
 		static constexpr uint32_t MURMUR_SEED = 195574;
 		enum class Flags : uint8_t { None = 0u, HasBakedData = 1u, HasUnbakedData = HasBakedData << 1u };
 		ModelCacheChunk(ShaderCache &shaderCache);
-		ModelCacheChunk(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
+		ModelCacheChunk(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 		void Bake();
 		void GenerateUnbakedData(bool force = false);
 
@@ -68,7 +68,7 @@ export namespace pragma::scenekit {
 		std::vector<std::shared_ptr<Object>> &GetObjects();
 
 		void Serialize(udm::LinkedPropertyWrapper &data);
-		void Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
+		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 
 		const std::vector<udm::PProperty> &GetBakedObjectData() const;
 		const std::vector<udm::PProperty> &GetBakedMeshData() const;
@@ -92,12 +92,12 @@ export namespace pragma::scenekit {
 	class DLLRTUTIL ModelCache : public std::enable_shared_from_this<ModelCache> {
 	  public:
 		static std::shared_ptr<ModelCache> Create();
-		static std::shared_ptr<ModelCache> Create(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
+		static std::shared_ptr<ModelCache> Create(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 
 		void Merge(ModelCache &other);
 
 		void Serialize(udm::LinkedPropertyWrapper &data);
-		void Deserialize(udm::LinkedPropertyWrapper &data, pragma::scenekit::NodeManager &nodeManager);
+		void Deserialize(udm::LinkedPropertyWrapper &data, NodeManager &nodeManager);
 
 		ModelCacheChunk &AddChunk(ShaderCache &shaderCache);
 		const std::vector<ModelCacheChunk> &GetChunks() const { return const_cast<ModelCache *>(this)->GetChunks(); }
@@ -113,7 +113,7 @@ export namespace pragma::scenekit {
 		std::vector<ModelCacheChunk> m_chunks {};
 		bool m_unique = false;
 	};
-	using namespace umath::scoped_enum::bitwise;
+	using namespace pragma::math::scoped_enum::bitwise;
 };
 export {
 	REGISTER_ENUM_FLAGS(pragma::scenekit::ModelCacheChunk::Flags)

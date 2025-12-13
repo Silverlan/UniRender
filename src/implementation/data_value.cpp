@@ -68,7 +68,7 @@ void pragma::scenekit::DataValue::Serialize(util::DataStream &dsOut) const
 	case SocketType::Node:
 		break;
 	}
-	static_assert(umath::to_integral(SocketType::Count) == 16);
+	static_assert(math::to_integral(SocketType::Count) == 16);
 }
 pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(util::DataStream &dsIn)
 {
@@ -78,9 +78,9 @@ pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(util::DataS
 		return DataValue {type, nullptr};
 	switch(type) {
 	case SocketType::Bool:
-		return DataValue::Create<STBool, SocketType::Bool>(dsIn->Read<STBool>());
+		return Create<STBool, SocketType::Bool>(dsIn->Read<STBool>());
 	case SocketType::Float:
-		return DataValue::Create<STFloat, SocketType::Float>(dsIn->Read<STFloat>());
+		return Create<STFloat, SocketType::Float>(dsIn->Read<STFloat>());
 	case SocketType::Int:
 		return DataValue::Create<STInt, SocketType::Int>(dsIn->Read<STInt>());
 	case SocketType::UInt:
@@ -184,7 +184,7 @@ void pragma::scenekit::DataValue::Serialize(udm::LinkedPropertyWrapper &data) co
 	case SocketType::Node:
 		break;
 	}
-	static_assert(umath::to_integral(SocketType::Count) == 16);
+	static_assert(math::to_integral(SocketType::Count) == 16);
 }
 pragma::scenekit::DataValue pragma::scenekit::DataValue::Deserialize(udm::LinkedPropertyWrapper &data)
 {

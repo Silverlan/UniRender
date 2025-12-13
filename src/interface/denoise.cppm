@@ -20,7 +20,7 @@ export namespace pragma::scenekit::denoise {
 
 	struct DLLRTUTIL ImageData {
 		uint8_t *data = nullptr;
-		uimg::Format format = uimg::Format::RGB32;
+		image::Format format = image::Format::RGB32;
 	};
 	struct DLLRTUTIL ImageInputs {
 		ImageData beautyImage;
@@ -36,5 +36,5 @@ export namespace pragma::scenekit::denoise {
 		std::shared_ptr<oidn::DeviceRef> m_device = nullptr;
 	};
 	DLLRTUTIL bool denoise(const Info &denoise, const ImageInputs &inputImages, const ImageData &outputImage, const std::function<bool(float)> &fProgressCallback = nullptr);
-	DLLRTUTIL bool denoise(const Info &denoise, uimg::ImageBuffer &imgBuffer, uimg::ImageBuffer *optImgBufferAlbedo = nullptr, uimg::ImageBuffer *optImgBufferNormal = nullptr, const std::function<bool(float)> &fProgressCallback = nullptr);
+	DLLRTUTIL bool denoise(const Info &denoise, image::ImageBuffer &imgBuffer, image::ImageBuffer *optImgBufferAlbedo = nullptr, image::ImageBuffer *optImgBufferNormal = nullptr, const std::function<bool(float)> &fProgressCallback = nullptr);
 };

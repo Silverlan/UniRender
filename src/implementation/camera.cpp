@@ -16,7 +16,7 @@ PCamera Camera::Create(Scene &scene) { return PCamera {new Camera {scene}}; }
 
 Camera::Camera(Scene &scene) : WorldObject {}, SceneObject {scene} {}
 
-util::WeakHandle<Camera> Camera::GetHandle() { return util::WeakHandle<Camera> {shared_from_this()}; }
+pragma::util::WeakHandle<Camera> Camera::GetHandle() { return pragma::util::WeakHandle<Camera> {shared_from_this()}; }
 
 void Camera::Serialize(udm::LinkedPropertyWrapper &data) const
 {
@@ -68,13 +68,13 @@ void Camera::Deserialize(udm::LinkedPropertyWrapper &data)
 	udm["stereoscopic"] >> m_stereoscopic;
 }
 
-void Camera::SetInterocularDistance(umath::Millimeter dist) { m_interocularDistance = dist; }
-void Camera::SetEquirectangularHorizontalRange(umath::Degree range)
+void Camera::SetInterocularDistance(math::Millimeter dist) { m_interocularDistance = dist; }
+void Camera::SetEquirectangularHorizontalRange(math::Degree range)
 {
 	m_longitudeMin = -range / 2.f;
 	m_longitudeMax = range / 2.f;
 }
-void Camera::SetEquirectangularVerticalRange(umath::Degree range)
+void Camera::SetEquirectangularVerticalRange(math::Degree range)
 {
 	m_latitudeMin = -range / 2.f;
 	m_latitudeMax = range / 2.f;
@@ -94,17 +94,17 @@ void Camera::GetResolution(uint32_t &width, uint32_t &height) const
 	height = m_height;
 }
 
-void Camera::SetFarZ(umath::Meter farZ) { m_farZ = farZ; }
-void Camera::SetNearZ(umath::Meter nearZ) { m_nearZ = nearZ; }
-void Camera::SetFOV(umath::Degree fov) { m_fov = fov; }
+void Camera::SetFarZ(math::Meter farZ) { m_farZ = farZ; }
+void Camera::SetNearZ(math::Meter nearZ) { m_nearZ = nearZ; }
+void Camera::SetFOV(math::Degree fov) { m_fov = fov; }
 float Camera::GetAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 void Camera::SetCameraType(CameraType type) { m_type = type; }
 void Camera::SetDepthOfFieldEnabled(bool enabled) { m_dofEnabled = enabled; }
-void Camera::SetFocalDistance(umath::Meter focalDistance) { m_focalDistance = focalDistance; }
+void Camera::SetFocalDistance(math::Meter focalDistance) { m_focalDistance = focalDistance; }
 void Camera::SetApertureSize(float size) { m_apertureSize = size; }
 void Camera::SetBokehRatio(float ratio) { m_apertureRatio = ratio; }
 void Camera::SetBladeCount(uint32_t numBlades) { m_numBlades = numBlades; }
-void Camera::SetBladesRotation(umath::Degree rotation) { m_bladesRotation = rotation; }
-void Camera::SetApertureSizeFromFStop(float fstop, umath::Millimeter focalLength) { SetApertureSize(umath::camera::calc_aperture_size_from_fstop(fstop, focalLength, m_type == CameraType::Orthographic)); }
-void Camera::SetFOVFromFocalLength(umath::Millimeter focalLength, umath::Millimeter sensorSize) { SetFOV(umath::camera::calc_fov_from_lens(sensorSize, focalLength, GetAspectRatio())); }
+void Camera::SetBladesRotation(math::Degree rotation) { m_bladesRotation = rotation; }
+void Camera::SetApertureSizeFromFStop(float fstop, math::Millimeter focalLength) { SetApertureSize(math::camera::calc_aperture_size_from_fstop(fstop, focalLength, m_type == CameraType::Orthographic)); }
+void Camera::SetFOVFromFocalLength(math::Millimeter focalLength, math::Millimeter sensorSize) { SetFOV(math::camera::calc_fov_from_lens(sensorSize, focalLength, GetAspectRatio())); }
 void Camera::SetPanoramaType(PanoramaType type) { m_panoramaType = type; }

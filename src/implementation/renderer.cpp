@@ -19,20 +19,20 @@ import :camera;
 import :light;
 import :shader;
 
-pragma::scenekit::RenderWorker::RenderWorker(Renderer &renderer) : util::ParallelWorker<uimg::ImageLayerSet> {}, m_renderer {renderer.shared_from_this()} {}
+pragma::scenekit::RenderWorker::RenderWorker(Renderer &renderer) : ParallelWorker<image::ImageLayerSet> {}, m_renderer {renderer.shared_from_this()} {}
 void pragma::scenekit::RenderWorker::DoCancel(const std::string &resultMsg, std::optional<int32_t> resultCode)
 {
-	util::ParallelWorker<uimg::ImageLayerSet>::DoCancel(resultMsg, resultCode);
+	ParallelWorker<image::ImageLayerSet>::DoCancel(resultMsg, resultCode);
 	m_renderer->OnParallelWorkerCancelled();
 }
 void pragma::scenekit::RenderWorker::Wait()
 {
-	util::ParallelWorker<uimg::ImageLayerSet>::Wait();
+	ParallelWorker<image::ImageLayerSet>::Wait();
 	m_renderer->Wait();
 }
-uimg::ImageLayerSet pragma::scenekit::RenderWorker::GetResult()
+pragma::image::ImageLayerSet pragma::scenekit::RenderWorker::GetResult()
 {
-	uimg::ImageLayerSet result {};
+	image::ImageLayerSet result {};
 	for(auto &pair : m_renderer->GetResultImageBuffers()) {
 		auto &imgBuf = pair.second.front();
 		if(!imgBuf)
@@ -46,25 +46,25 @@ uimg::ImageLayerSet pragma::scenekit::RenderWorker::GetResult()
 
 static std::string g_moduleLookupLocation {};
 void pragma::scenekit::set_module_lookup_location(const std::string &location) { g_moduleLookupLocation = location; }
-static std::unordered_map<std::string, std::shared_ptr<util::Library>> g_rendererLibs {};
+static std::unordered_map<std::string, std::shared_ptr<pragma::util::Library>> g_rendererLibs {};
 void pragma::scenekit::Renderer::Close()
 {
 	g_rendererLibs.clear();
-	pragma::scenekit::set_log_handler();
+	scenekit::set_log_handler();
 }
-std::shared_ptr<pragma::scenekit::Renderer> pragma::scenekit::Renderer::Create(const pragma::scenekit::Scene &scene, const std::string &rendererIdentifier, std::string &outErr, Flags flags)
+std::shared_ptr<pragma::scenekit::Renderer> pragma::scenekit::Renderer::Create(const Scene &scene, const std::string &rendererIdentifier, std::string &outErr, Flags flags)
 {
 	auto res = scene.GetResolution();
 	if(res.x <= 0 || res.y <= 0) {
 		outErr = "Illegal resolution " + std::to_string(res.x) + "x" + std::to_string(res.y) + ": Resolution must not be 0.";
 		return nullptr;
 	}
-	pragma::scenekit::PRenderer renderer = nullptr;
+	PRenderer renderer = nullptr;
 	auto it = g_rendererLibs.find(rendererIdentifier);
 	if(it == g_rendererLibs.end()) {
 		auto moduleLocation = util::DirPath(g_moduleLookupLocation, rendererIdentifier);
 		std::string absPath;
-		if(!filemanager::find_absolute_path(moduleLocation.GetString(), absPath)) {
+		if(!fs::find_absolute_path(moduleLocation.GetString(), absPath)) {
 			std::cout << "Unable to locate absolute path for module location '" << moduleLocation << "'!" << std::endl;
 			return nullptr;
 		}
@@ -86,7 +86,7 @@ std::shared_ptr<pragma::scenekit::Renderer> pragma::scenekit::Renderer::Create(c
 		it = g_rendererLibs.insert(std::make_pair(rendererIdentifier, lib)).first;
 	}
 	auto &lib = it->second;
-	auto *func = lib->FindSymbolAddress<bool (*)(const pragma::scenekit::Scene &, Flags, std::shared_ptr<pragma::scenekit::Renderer> &, std::string &)>("create_renderer");
+	auto *func = lib->FindSymbolAddress<bool (*)(const Scene &, Flags, std::shared_ptr<Renderer> &, std::string &)>("create_renderer");
 	if(func == nullptr) {
 		outErr = "Failed to locate symbol 'create_renderer' in renderer module!";
 		return nullptr;
@@ -113,45 +113,45 @@ std::pair<uint32_t, pragma::scenekit::PassType> pragma::scenekit::Renderer::AddP
 		it = m_passes.insert(std::make_pair(passType, m_nextOutputIndex++)).first;
 	return {it->second, passType};
 }
-uimg::ImageBuffer *pragma::scenekit::Renderer::FindResultImageBuffer(PassType type, StereoEye eye)
+pragma::image::ImageBuffer *pragma::scenekit::Renderer::FindResultImageBuffer(PassType type, StereoEye eye)
 {
 	if(eye == StereoEye::None)
 		eye = StereoEye::Left;
 	auto it = m_resultImageBuffers.find(type);
 	if(it == m_resultImageBuffers.end())
 		return nullptr;
-	return it->second.at(umath::to_integral(eye)).get();
+	return it->second.at(math::to_integral(eye)).get();
 }
-std::shared_ptr<uimg::ImageBuffer> &pragma::scenekit::Renderer::GetResultImageBuffer(PassType type, StereoEye eye)
+std::shared_ptr<pragma::image::ImageBuffer> &pragma::scenekit::Renderer::GetResultImageBuffer(PassType type, StereoEye eye)
 {
 	if(eye == StereoEye::None)
 		eye = StereoEye::Left;
 	auto it = m_resultImageBuffers.find(type);
 	if(it == m_resultImageBuffers.end())
-		it = m_resultImageBuffers.insert(std::make_pair(type, std::array<std::shared_ptr<uimg::ImageBuffer>, umath::to_integral(StereoEye::Count)> {})).first;
-	return it->second.at(umath::to_integral(eye));
+		it = m_resultImageBuffers.insert(std::make_pair(type, std::array<std::shared_ptr<image::ImageBuffer>, math::to_integral(StereoEye::Count)> {})).first;
+	return it->second.at(math::to_integral(eye));
 }
 
 void pragma::scenekit::Renderer::UpdateActorMap() { m_actorMap = m_scene->BuildActorMap(); }
 bool pragma::scenekit::Renderer::IsFeatureEnabled(Feature feature) const { return false; }
 
-pragma::scenekit::Renderer::RenderStageResult pragma::scenekit::Renderer::StartNextRenderStage(RenderWorker &worker, pragma::scenekit::Renderer::ImageRenderStage stage, StereoEye eyeStage)
+pragma::scenekit::Renderer::RenderStageResult pragma::scenekit::Renderer::StartNextRenderStage(RenderWorker &worker, ImageRenderStage stage, StereoEye eyeStage)
 {
 	auto result = RenderStageResult::Continue;
 	auto handled = HandleRenderStage(worker, stage, eyeStage, &result);
 	return result;
 }
-void pragma::scenekit::Renderer::DumpImage(const std::string &renderStage, uimg::ImageBuffer &imgBuffer, uimg::ImageFormat format, const std::optional<std::string> &fileNameOverride) const
+void pragma::scenekit::Renderer::DumpImage(const std::string &renderStage, image::ImageBuffer &imgBuffer, image::ImageFormat format, const std::optional<std::string> &fileNameOverride) const
 {
-	filemanager::create_path("temp/render_image_stages");
-	auto fileName = fileNameOverride.has_value() ? *fileNameOverride : ("temp/render_image_stages/render_output_" + renderStage + "." + uimg::get_file_extension(format));
-	auto f = filemanager::open_file(fileName, filemanager::FileMode::Write | filemanager::FileMode::Binary);
+	fs::create_path("temp/render_image_stages");
+	auto fileName = fileNameOverride.has_value() ? *fileNameOverride : ("temp/render_image_stages/render_output_" + renderStage + "." + image::get_file_extension(format));
+	auto f = fs::open_file(fileName, fs::FileMode::Write | fs::FileMode::Binary);
 	if(!f) {
 		std::cout << "Failed to dump render stage image '" << renderStage << "': Could not open file '" << fileName << "' for writing!" << std::endl;
 		return;
 	}
-	fsys::File fp {f};
-	auto res = uimg::save_image(fp, imgBuffer, format);
+	fs::File fp {f};
+	auto res = image::save_image(fp, imgBuffer, format);
 	if(!res)
 		std::cout << "Failed to dump render stage image '" << renderStage << "': Unknown error!" << std::endl;
 }
@@ -162,12 +162,12 @@ bool pragma::scenekit::Renderer::ShouldDumpRenderStageImages() const
 	apiData.GetFromPath("debug/dumpRenderStageImages")(dumpRenderStageImages);
 	return dumpRenderStageImages;
 }
-util::EventReply pragma::scenekit::Renderer::HandleRenderStage(RenderWorker &worker, pragma::scenekit::Renderer::ImageRenderStage stage, StereoEye eyeStage, pragma::scenekit::Renderer::RenderStageResult *optResult)
+pragma::util::EventReply pragma::scenekit::Renderer::HandleRenderStage(RenderWorker &worker, ImageRenderStage stage, StereoEye eyeStage, RenderStageResult *optResult)
 {
 	switch(stage) {
 	case ImageRenderStage::Denoise:
 		{
-			auto denoiseImg = [this, eyeStage, &worker](uimg::ImageBuffer &imgBuf, bool lightmap) {
+			auto denoiseImg = [this, eyeStage, &worker](image::ImageBuffer &imgBuf, bool lightmap) {
 				auto albedoImageBuffer = GetResultImageBuffer(PassType::Albedo, eyeStage);
 				auto normalImageBuffer = GetResultImageBuffer(PassType::Normals, eyeStage);
 
@@ -203,7 +203,7 @@ util::EventReply pragma::scenekit::Renderer::HandleRenderStage(RenderWorker &wor
 					else {
 						denoiseImg(*resultImageBuffer, false);
 						if(ShouldDumpRenderStageImages())
-							DumpImage("denoise", *resultImageBuffer, uimg::ImageFormat::HDR);
+							DumpImage("denoise", *resultImageBuffer, image::ImageFormat::HDR);
 					}
 				}
 			}
@@ -219,23 +219,23 @@ util::EventReply pragma::scenekit::Renderer::HandleRenderStage(RenderWorker &wor
 	case ImageRenderStage::FinalizeImage:
 		{
 			for(auto &pair : m_resultImageBuffers) {
-				auto &resultImageBuffer = pair.second[umath::to_integral((eyeStage != StereoEye::None) ? eyeStage : StereoEye::Left)];
+				auto &resultImageBuffer = pair.second[math::to_integral((eyeStage != StereoEye::None) ? eyeStage : StereoEye::Left)];
 				if(!resultImageBuffer)
 					continue;
 				if(ShouldDumpRenderStageImages())
-					DumpImage("raw_output", *resultImageBuffer, uimg::ImageFormat::PNG);
+					DumpImage("raw_output", *resultImageBuffer, image::ImageFormat::PNG);
 				if(m_colorTransformProcessor) // TODO: Should we really apply color transform if we're not denoising?
 				{
 					std::string err;
 					if(m_colorTransformProcessor->Apply(*resultImageBuffer, err) == false)
 						m_scene->HandleError("Unable to apply color transform: " + err);
 					if(ShouldDumpRenderStageImages())
-						DumpImage("color_transform", *resultImageBuffer, uimg::ImageFormat::HDR);
+						DumpImage("color_transform", *resultImageBuffer, image::ImageFormat::HDR);
 				}
-				if(!ShouldUseTransparentSky() || pragma::scenekit::Scene::IsLightmapRenderMode(m_scene->GetRenderMode()))
+				if(!ShouldUseTransparentSky() || Scene::IsLightmapRenderMode(m_scene->GetRenderMode()))
 					resultImageBuffer->ClearAlpha();
 				if(ShouldDumpRenderStageImages())
-					DumpImage("alpha", *resultImageBuffer, uimg::ImageFormat::HDR);
+					DumpImage("alpha", *resultImageBuffer, image::ImageFormat::HDR);
 				FinalizeImage(*resultImageBuffer, eyeStage);
 			}
 			if(eyeStage == StereoEye::Left) {
@@ -255,7 +255,7 @@ util::EventReply pragma::scenekit::Renderer::HandleRenderStage(RenderWorker &wor
 				auto &imgRight = GetResultImageBuffer(*passType, StereoEye::Right);
 				auto w = imgLeft->GetWidth();
 				auto h = imgLeft->GetHeight();
-				auto imgComposite = uimg::ImageBuffer::Create(w, h * 2, imgLeft->GetFormat());
+				auto imgComposite = image::ImageBuffer::Create(w, h * 2, imgLeft->GetFormat());
 				auto *dataSrcLeft = imgLeft->GetData();
 				auto *dataSrcRight = imgRight->GetData();
 				auto *dataDst = imgComposite->GetData();
@@ -289,16 +289,16 @@ void pragma::scenekit::Renderer::PrepareCyclesSceneForRendering()
 }
 bool pragma::scenekit::Renderer::ShouldUseProgressiveFloatFormat() const { return true; }
 bool pragma::scenekit::Renderer::ShouldUseTransparentSky() const { return m_scene->GetSceneInfo().transparentSky; }
-bool pragma::scenekit::Renderer::IsDisplayDriverEnabled() const { return !umath::is_flag_set(static_cast<pragma::scenekit::Renderer::Flags>(m_flags), Flags::DisableDisplayDriver); }
-bool pragma::scenekit::Renderer::IsBuildingKernels() const { return umath::is_flag_set(static_cast<pragma::scenekit::Renderer::Flags>(m_flags), Flags::CompilingKernels); }
+bool pragma::scenekit::Renderer::IsDisplayDriverEnabled() const { return !math::is_flag_set(static_cast<Flags>(m_flags), Flags::DisableDisplayDriver); }
+bool pragma::scenekit::Renderer::IsBuildingKernels() const { return math::is_flag_set(static_cast<Flags>(m_flags), Flags::CompilingKernels); }
 void pragma::scenekit::Renderer::SetIsBuildingKernels(bool compiling)
 {
-	pragma::scenekit::Renderer::Flags flags = m_flags;
-	if(compiling == umath::is_flag_set(flags, pragma::scenekit::Renderer::Flags::CompilingKernels))
+	Flags flags = m_flags;
+	if(compiling == math::is_flag_set(flags, Flags::CompilingKernels))
 		return;
-	umath::set_flag(flags, pragma::scenekit::Renderer::Flags::CompilingKernels, compiling);
+	math::set_flag(flags, Flags::CompilingKernels, compiling);
 	m_flags = flags;
-	auto &f = pragma::scenekit::get_kernel_compile_callback();
+	auto &f = scenekit::get_kernel_compile_callback();
 	if(f)
 		f(compiling);
 }
