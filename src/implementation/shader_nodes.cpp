@@ -277,16 +277,16 @@ std::string pragma::scenekit::Socket::ToString() const
 		else {
 			switch(m_value->type) {
 			case SocketType::Bool:
-				str += std::to_string(*static_cast<STBool *>(m_value->value.get()));
+				str += util::to_string(*static_cast<STBool *>(m_value->value.get()));
 				break;
 			case SocketType::Float:
-				str += std::to_string(*static_cast<STFloat *>(m_value->value.get()));
+				str += util::to_string(*static_cast<STFloat *>(m_value->value.get()));
 				break;
 			case SocketType::Int:
-				str += std::to_string(*static_cast<STInt *>(m_value->value.get()));
+				str += util::to_string(*static_cast<STInt *>(m_value->value.get()));
 				break;
 			case SocketType::UInt:
-				str += std::to_string(*static_cast<STUInt *>(m_value->value.get()));
+				str += util::to_string(*static_cast<STUInt *>(m_value->value.get()));
 				break;
 			case SocketType::Color:
 				str += uvec::to_string(static_cast<STColor *>(m_value->value.get()));
@@ -311,7 +311,7 @@ std::string pragma::scenekit::Socket::ToString() const
 				str += *static_cast<STString *>(m_value->value.get());
 				break;
 			case SocketType::Enum:
-				str += std::to_string(*static_cast<STEnum *>(m_value->value.get()));
+				str += util::to_string(*static_cast<STEnum *>(m_value->value.get()));
 				break;
 			case SocketType::Transform:
 				{
@@ -330,7 +330,7 @@ std::string pragma::scenekit::Socket::ToString() const
 							first = false;
 						else
 							str += ',';
-						str += std::to_string(v);
+						str += util::to_string(v);
 					}
 					str += '}';
 					break;
@@ -344,7 +344,7 @@ std::string pragma::scenekit::Socket::ToString() const
 							first = false;
 						else
 							str += ',';
-						str += std::to_string(v.r) + ' ' + std::to_string(v.g) + ' ' + std::to_string(v.b);
+						str += util::to_string(v.r) + ' ' + util::to_string(v.g) + ' ' + util::to_string(v.b);
 					}
 					str += '}';
 					break;

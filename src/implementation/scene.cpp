@@ -532,7 +532,7 @@ void pragma::scenekit::Scene::Save(udm::AssetDataArg outData, const std::string 
 				}
 			}
 		}
-		auto mdlCachePath = util::FilePath(modelCachePath, std::to_string(hash) + "." + std::string {PRTMC_EXTENSION_BINARY}).GetString();
+		auto mdlCachePath = util::FilePath(modelCachePath, util::to_string(hash) + "." + std::string {PRTMC_EXTENSION_BINARY}).GetString();
 		if(fs::exists(mdlCachePath) == false) {
 			fs::create_path(ufile::get_path_from_filename(mdlCachePath));
 			auto f = fs::open_file(mdlCachePath, fs::FileMode::Write | fs::FileMode::Binary);
@@ -629,7 +629,7 @@ bool pragma::scenekit::Scene::Load(udm::AssetDataArg data, const std::string &ro
 		auto udmCache = udmModelCaches[i];
 		size_t hash = 0;
 		udmCache["hash"] >> hash;
-		auto baseMdlCachePath = modelCachePath + std::to_string(hash);
+		auto baseMdlCachePath = modelCachePath + util::to_string(hash);
 		auto mdlCachePath = baseMdlCachePath + "." + std::string {PRTMC_EXTENSION_BINARY};
 		auto f = fs::open_system_file(mdlCachePath, fs::FileMode::Read | fs::FileMode::Binary);
 		if(!f) {

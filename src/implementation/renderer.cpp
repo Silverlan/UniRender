@@ -56,7 +56,7 @@ std::shared_ptr<pragma::scenekit::Renderer> pragma::scenekit::Renderer::Create(c
 {
 	auto res = scene.GetResolution();
 	if(res.x <= 0 || res.y <= 0) {
-		outErr = "Illegal resolution " + std::to_string(res.x) + "x" + std::to_string(res.y) + ": Resolution must not be 0.";
+		outErr = "Illegal resolution " + util::to_string(res.x) + "x" + util::to_string(res.y) + ": Resolution must not be 0.";
 		return nullptr;
 	}
 	PRenderer renderer = nullptr;

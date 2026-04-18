@@ -470,7 +470,7 @@ pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::AddNode(NodeTypeId 
 		m_nodes.reserve(m_nodes.size() * 1.5 + 10);
 	auto node = m_nodeManager.CreateNode(id, this);
 	if(node == nullptr)
-		throw Exception {"Invalid node type '" + std::to_string(id) + "'!"};
+		throw Exception {"Invalid node type '" + util::to_string(id) + "'!"};
 	m_nodes.push_back(node);
 	return *node;
 }

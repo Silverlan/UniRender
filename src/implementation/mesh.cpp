@@ -419,6 +419,6 @@ void pragma::scenekit::Mesh::Validate() const
 	for(auto i = decltype(m_numTris) {0u}; i < m_numTris; ++i) {
 		auto idx = m_triangles[i];
 		if(idx < 0 || idx >= m_verts.size())
-			throw std::range_error {"Triangle index " + std::to_string(idx) + " is out of range of number of vertices (" + std::to_string(m_verts.size()) + ")"};
+			throw std::range_error {"Triangle index " + util::to_string(idx) + " is out of range of number of vertices (" + util::to_string(m_verts.size()) + ")"};
 	}
 }
