@@ -610,16 +610,16 @@ pragma::scenekit::Socket pragma::scenekit::GroupNodeDesc::AddConstantNode(float 
 }
 pragma::scenekit::Socket pragma::scenekit::GroupNodeDesc::CombineRGB(const Socket &r, const Socket &g, const Socket &b)
 {
-	auto &node = AddNode(NODE_COMBINE_RGB);
-	Link(r, node.GetInputSocket(nodes::combine_rgb::IN_R));
-	Link(g, node.GetInputSocket(nodes::combine_rgb::IN_G));
-	Link(b, node.GetInputSocket(nodes::combine_rgb::IN_B));
+	auto &node = AddNode(NODE_COMBINE_COLOR);
+	Link(r, node.GetInputSocket(nodes::combine_color::IN_R));
+	Link(g, node.GetInputSocket(nodes::combine_color::IN_G));
+	Link(b, node.GetInputSocket(nodes::combine_color::IN_B));
 	return node;
 }
 pragma::scenekit::NodeDesc &pragma::scenekit::GroupNodeDesc::SeparateRGB(const Socket &rgb)
 {
-	auto &node = AddNode(NODE_SEPARATE_RGB);
-	Link(rgb, node.GetInputSocket(nodes::separate_rgb::IN_COLOR));
+	auto &node = AddNode(NODE_SEPARATE_COLOR);
+	Link(rgb, node.GetInputSocket(nodes::separate_color::IN_COLOR));
 	return node;
 }
 void pragma::scenekit::GroupNodeDesc::Serialize(udm::LinkedPropertyWrapper &data) { SerializeNodes(data); }
@@ -975,23 +975,25 @@ void pragma::scenekit::NodeManager::RegisterNodeTypes()
 		desc->RegisterPrimaryOutputSocket(nodes::combine_xyz::OUT_VECTOR);
 		return desc;
 	});
-	RegisterNodeType(NODE_SEPARATE_RGB, [](GroupNodeDesc *parent) {
+	RegisterNodeType(NODE_SEPARATE_COLOR, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<SocketType::Color>(nodes::separate_rgb::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Color>(nodes::separate_color::IN_COLOR, STColor {}, SocketIO::In);
+		desc->RegisterSocket<SocketType::Enum>(nodes::separate_color::IN_COLOR_TYPE, nodes::separate_color::ColorType::RGB);
 
-		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_R, SocketIO::Out);
-		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_G, SocketIO::Out);
-		desc->RegisterSocket<SocketType::Float>(nodes::separate_rgb::OUT_B, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_color::OUT_R, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_color::OUT_G, SocketIO::Out);
+		desc->RegisterSocket<SocketType::Float>(nodes::separate_color::OUT_B, SocketIO::Out);
 		return desc;
 	});
-	RegisterNodeType(NODE_COMBINE_RGB, [](GroupNodeDesc *parent) {
+	RegisterNodeType(NODE_COMBINE_COLOR, [](GroupNodeDesc *parent) {
 		auto desc = NodeDesc::Create(parent);
-		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_R, 0.f, SocketIO::In);
-		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_G, 0.f, SocketIO::In);
-		desc->RegisterSocket<SocketType::Float>(nodes::combine_rgb::IN_B, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_color::IN_R, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_color::IN_G, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Float>(nodes::combine_color::IN_B, 0.f, SocketIO::In);
+		desc->RegisterSocket<SocketType::Enum>(nodes::separate_color::IN_COLOR_TYPE, nodes::separate_color::ColorType::RGB);
 
-		desc->RegisterSocket<SocketType::Color>(nodes::combine_rgb::OUT_IMAGE, SocketIO::Out);
-		desc->RegisterPrimaryOutputSocket(nodes::combine_rgb::OUT_IMAGE);
+		desc->RegisterSocket<SocketType::Color>(nodes::combine_color::OUT_COLOR, SocketIO::Out);
+		desc->RegisterPrimaryOutputSocket(nodes::combine_color::OUT_COLOR);
 		return desc;
 	});
 	RegisterNodeType(NODE_GEOMETRY, [](GroupNodeDesc *parent) {

@@ -25,7 +25,6 @@ export namespace pragma::scenekit {
 
 			Area,
 			Background,
-			Triangle
 		};
 		static PLight Create();
 		static PLight Create(udm::LinkedPropertyWrapper &data);

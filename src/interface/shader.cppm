@@ -388,8 +388,8 @@ export namespace pragma::scenekit {
 	constexpr inline auto *NODE_HSV = "hsv";
 	constexpr inline auto *NODE_SEPARATE_XYZ = "separate_xyz";
 	constexpr inline auto *NODE_COMBINE_XYZ = "combine_xyz";
-	constexpr inline auto *NODE_SEPARATE_RGB = "separate_rgb";
-	constexpr inline auto *NODE_COMBINE_RGB = "combine_rgb";
+	constexpr inline auto *NODE_SEPARATE_COLOR = "separate_color";
+	constexpr inline auto *NODE_COMBINE_COLOR = "combine_color";
 	constexpr inline auto *NODE_GEOMETRY = "geometry";
 	constexpr inline auto *NODE_CAMERA_INFO = "camera_info";
 	constexpr inline auto *NODE_IMAGE_TEXTURE = "image_texture";

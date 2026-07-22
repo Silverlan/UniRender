@@ -190,19 +190,29 @@ export namespace pragma::scenekit {
 
 			constexpr inline auto *OUT_VECTOR = "vector";
 		};
-		namespace separate_rgb {
+		namespace separate_color {
 			constexpr inline auto *IN_COLOR = "color";
+			constexpr inline auto *IN_COLOR_TYPE = "color_type";
 
 			constexpr inline auto *OUT_R = "r";
 			constexpr inline auto *OUT_G = "g";
 			constexpr inline auto *OUT_B = "b";
+
+			enum class ColorType : uint32_t {
+				RGB = 0,
+				HSV,
+				HSL,
+
+				Count
+			};
 		};
-		namespace combine_rgb {
+		namespace combine_color {
 			constexpr inline auto *IN_R = "r";
 			constexpr inline auto *IN_G = "g";
 			constexpr inline auto *IN_B = "b";
+			constexpr inline auto *IN_COLOR_TYPE = "color_type";
 
-			constexpr inline auto *OUT_IMAGE = "image";
+			constexpr inline auto *OUT_COLOR = "color";
 		};
 		namespace geometry {
 			constexpr inline auto *OUT_POSITION = "position";
