@@ -48,7 +48,7 @@ namespace OpenImageIO_v2_1 {
 namespace spdlog {
 	class logger;
 };
-namespace OpenSubdiv::v3_6_0::Far {
+namespace OpenSubdiv::v3_7_0::Far {
 	class PrimvarRefiner;
 };
 
